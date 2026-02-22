@@ -1,0 +1,3 @@
+[submodule "pubsub-router"]
+    path = pubsub-router
+    url = git@github.com:itsHabib/pubsub-router.git
