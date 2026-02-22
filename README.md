@@ -33,15 +33,16 @@ Scrapped the big team and ran focused, purpose-built teams one phase at a time. 
 
 | Phase | Team / Agents | Output |
 |---|---|---|
-| **Architecture** | Architect + Devil's Advocate | `docs/arch/ARCH.md`, `docs/arch/DECISIONS.md` |
-| **Backend — Admin API** | Backend agent (Admin API) | `docs/backend/ADMIN_API.md` |
-| **Backend — Ingest + Delivery** | Backend agent (Ingest/Delivery) | `docs/backend/INGEST_DELIVERY.md`, `docs/backend/DELIVERY_WORKER.md` |
-| **Frontend** | Frontend agent | `docs/ui/FRONTEND_PLAN.md` |
-| **Performance** | Perf analyst + Telemetry eng + Load test eng | `docs/perf/PERF_PLAN.md`, `docs/perf/TELEMETRY_PLAN.md`, `docs/perf/LOADTEST_PLAN.md` |
-| **Testing / SDET** | SDET lead + Test infra | `docs/test/E2E_PLAN.md`, `docs/test/INFRA_PLAN.md` |
-| **Review** | 6 reviewers (frontend, admin-api, ingest, delivery, security, infra) | `docs/review/*.md`, `docs/review/REVIEW_SUMMARY.md` |
+| **1. Architecture** | Architect + Devil's Advocate | `docs/arch/ARCH.md`, `docs/arch/DECISIONS.md` |
+| **2. Backend — Admin API** | Backend agent (Admin API) | `docs/backend/ADMIN_API.md` |
+| **3. Backend — Ingest + Delivery** | Backend agent (Ingest/Delivery) | `docs/backend/INGEST_DELIVERY.md`, `docs/backend/DELIVERY_WORKER.md` |
+| **4. Infra / SRE** | SRE / DevOps agent | `docs/` (docker-compose, observability setup) |
+| **5. Frontend** | Frontend agent | `docs/ui/FRONTEND_PLAN.md` |
+| **6. Testing / SDET** | SDET lead + Test infra | `docs/test/E2E_PLAN.md`, `docs/test/INFRA_PLAN.md` |
+| **7. Performance** | Perf analyst + Telemetry eng + Load test eng | `docs/perf/PERF_PLAN.md`, `docs/perf/TELEMETRY_PLAN.md`, `docs/perf/LOADTEST_PLAN.md` |
+| **8. Review** | 6 reviewers (frontend, admin-api, ingest, delivery, security, infra) | `docs/review/*.md`, `docs/review/REVIEW_SUMMARY.md` |
 
-Agent roles used: Architect, Devil's Advocate, Backend (Admin API), Backend (Ingest + Delivery), Frontend, SRE / DevOps, Perf Analyst, Telemetry Engineer, Load Test Engineer, SDET Lead, Test Infra, Reviewers (x6).
+Agent roles used: Architect, Devil's Advocate, Backend (Admin API), Backend (Ingest + Delivery), SRE / DevOps, Perf Analyst, Telemetry Engineer, Load Test Engineer, Frontend, SDET Lead, Test Infra, Reviewers (x6).
 
 #### Prompts
 
