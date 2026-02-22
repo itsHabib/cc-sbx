@@ -1,6 +1,6 @@
 # teams-sbx
 
-A sandbox for experimenting with Claude Code multi-agent teams. Each sub-project explores how to effectively use specialized agent teams to design and build a non-trivial system from scratch.
+A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus on subagents and multi-agent teams. Each sub-project explores prompting patterns, team structures, and workflows for using Claude Code agents to design and build non-trivial systems from scratch.
 
 ---
 
