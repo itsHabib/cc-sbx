@@ -1,3 +1,6 @@
 [submodule "pubsub-router"]
     path = pubsub-router
     url = git@github.com:itsHabib/pubsub-router.git
+[submodule "course-builder"]
+	path = course-builder
+	url = git@github.com:itsHabib/course-builder-cache.git

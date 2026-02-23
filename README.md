@@ -10,6 +10,10 @@ A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus o
     - [Prompts](#prompts)
     - [Plans / Docs](#plans--docs)
     - [Learnings](#learnings)
+  - [course-builder](#course-builder)
+    - [Agent Workflow](#agent-workflow-1)
+    - [Phases](#phases)
+    - [Plans / Docs](#plans--docs-1)
 
 ---
 
@@ -89,3 +93,56 @@ docs/
 - **Infra/platform is the hardest area.** Agents tend to make mistakes with Docker setups and platform-level config. Expect more iteration there.
 - **Clear context between phases matters.** Reset/clear context after each team run so agents start fresh without carrying stale state.
 - **Plan-first enforced by template.** A strict `TEMPLATE.md` that all agents follow (plan mode, no code, fixed output file, end with `READY FOR APPROVAL`) dramatically improves consistency and reviewability.
+
+---
+
+### [`course-builder`](./course-builder)
+
+A demonstration of using Claude Code agent teams to produce a complete, learner-ready technical course from scratch. The output is a project-based course that teaches backend developers to build a caching proxy in Go.
+
+#### Agent Workflow
+
+Three skills drove the entire workflow:
+
+- **`/init-team-project`** — interviewed the user and produced `PROJECT.md`, the source-of-truth doc that all teammates read before writing anything.
+- **`/new-team-phase`** — scaffolded each phase's `kickoff.yaml` config (teammates, roles, output doc paths, focus areas, and dependencies).
+- **`/team-kickoff`** — read the kickoff config, spawned all teammates in parallel (each in plan mode), waited for all plans to land, then synthesized cross-team risks and asked which plan to approve first.
+
+Each phase followed the same loop:
+
+```
+/new-team-phase  →  edit kickoff.yaml  →  /team-kickoff
+      ↓
+teammates write plans in parallel (plan mode)
+      ↓
+team lead synthesizes, user approves plans
+      ↓
+teammates implement (write docs / reports)
+      ↓
+team lead reviews, commits artifacts
+```
+
+#### Phases
+
+| Phase | Teammates | Output |
+|---|---|---|
+| **1. Curriculum Architecture** | Curriculum Architect, Subject Matter Researcher, Instructional Designer, Assessment Designer, QA Skeptic, Publishing Planner | Phase 1 planning docs in `docs/phases/curriculum-architecture/` |
+| **2. Content Production** | Module Writers (Foundation / Core / Advanced), Exercise Designer, Quiz Writer, Support Docs Writer | All learner-facing content in `docs/course/` |
+| **3. QA & Editorial Review** | QA Reviewer, Editor, Skeptic | Review reports in `docs/phases/qa-editorial/` |
+
+#### Plans / Docs
+
+```
+PROJECT.md                          # source of truth — read by all teammates
+docs/
+  course/                           # all learner-facing content (final artifacts)
+    00-overview.md
+    modules/                        # m00–m07 lesson files
+    exercises/
+    assessments/
+    glossary-and-resources.md
+  phases/                           # planning artifacts and review reports
+    curriculum-architecture/        # Phase 1 plans
+    content-production/             # Phase 2 (kickoff config only; output → docs/course/)
+    qa-editorial/                   # Phase 3 review reports + fix history
+```
