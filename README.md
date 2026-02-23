@@ -19,7 +19,7 @@ A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus o
 
 ## Projects
 
-### [`pubsub-router`](./pubsub-router)
+### pubsub-router
 
 A Kafka-backed Pub/Sub Router with an Admin UI and API. Events are ingested over HTTP, routed through Kafka topics, and delivered to subscriber gRPC endpoints with retries, a dead-letter queue, and full observability (Prometheus + Grafana).
 
@@ -96,7 +96,7 @@ docs/
 
 ---
 
-### [`course-builder`](./course-builder)
+### course-builder
 
 A demonstration of using Claude Code agent teams to produce a complete, learner-ready technical course from scratch. The output is a project-based course that teaches backend developers to build a caching proxy in Go.
 
