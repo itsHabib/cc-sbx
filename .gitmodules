@@ -4,3 +4,6 @@
 [submodule "course-builder"]
 	path = course-builder
 	url = git@github.com:itsHabib/course-builder-cache.git
+[submodule "wellness-team"]
+	path = wellness-team
+	url = git@github.com:itsHabib/wellness-team.git
