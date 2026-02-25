@@ -14,6 +14,10 @@ A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus o
     - [Agent Workflow](#agent-workflow-1)
     - [Phases](#phases)
     - [Plans / Docs](#plans--docs-1)
+  - [wellness-team](#wellness-team)
+    - [Agent Workflow](#agent-workflow-2)
+    - [Team Members](#team-members)
+    - [Plans / Docs](#plans--docs-2)
 
 ---
 
@@ -145,4 +149,54 @@ docs/
     curriculum-architecture/        # Phase 1 plans
     content-production/             # Phase 2 (kickoff config only; output → docs/course/)
     qa-editorial/                   # Phase 3 review reports + fix history
+```
+
+---
+
+### wellness-team
+
+A multi-disciplinary coaching team that builds a comprehensive 4-month (16-week) training plan to prepare an athlete for the CrossFit Open with a Quarterfinals qualification (top 25%) as the target. All deliverables are markdown documents — no code or infrastructure.
+
+#### Agent Workflow
+
+Four skills drove the entire workflow end-to-end:
+
+1. **`/init-team-project`** — interactive interview that produced `PROJECT.md` (athlete profile, coaching domains, constraints, non-goals).
+2. **`/new-team-phase`** — scaffolded `kickoff.yaml` with teammates, roles, output paths, focus areas, and dependencies.
+3. **`/team-kickoff`** — spawned all 8 teammates in parallel (plan mode), each writing their domain plan. Head Coach reviewed all plans and issued revision directives.
+4. **`/team-execute`** — re-spawned all 8 teammates to write full deliverables from their approved plans, followed by a cross-domain consistency review and targeted fixes.
+
+```
+/init-team-project  →  PROJECT.md
+        ↓
+/new-team-phase  →  kickoff.yaml
+        ↓
+/team-kickoff  →  8 plans written in parallel
+        ↓
+/team-execute  →  8 deliverables written in parallel  →  consistency review  →  fixes
+```
+
+#### Team Members
+
+| Role | Focus |
+|------|-------|
+| Head Coach | Cross-domain coordination, master schedule, phase structure, conflict resolution |
+| Nutritionist | Macros, meal timing, hydration, supplementation by phase |
+| Strength Coach | Resistance training, progressive overload, strength benchmarks |
+| Endurance Coach | Aerobic/anaerobic conditioning, engine building, intervals |
+| Mobility Coach | Flexibility, joint health, warm-ups, cool-downs, movement screening |
+| Recovery & Sleep Coach | Sleep hygiene, rest protocols, deloads, readiness scoring |
+| Mental Performance Coach | Visualization, stress inoculation, competition-day routines |
+| Competition Strategy Coach | Open/QF tactics, pacing models, score optimization, mock competitions |
+
+#### Plans / Docs
+
+```
+wellness-team/
+  PROJECT.md                        # source of truth — read by all teammates
+  docs/
+    crossfit-open-prep/
+      kickoff.yaml                  # phase config for /team-kickoff and /team-execute
+    plans/                          # approved plans (output of /team-kickoff)
+    content/                        # full deliverables (output of /team-execute)
 ```
