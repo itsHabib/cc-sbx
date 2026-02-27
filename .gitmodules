@@ -7,3 +7,9 @@
 [submodule "wellness-team"]
 	path = wellness-team
 	url = git@github.com:itsHabib/wellness-team.git
+[submodule "agent-hackathon"]
+	path = agent-hackathon
+	url = git@github.com:itsHabib/agent-hackathon-cli.git
+[submodule "agent-orchestra"]
+	path = agent-orchestra
+	url = git@github.com:itsHabib/orchestra.git

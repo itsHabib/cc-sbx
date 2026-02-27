@@ -18,6 +18,8 @@ A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus o
     - [Agent Workflow](#agent-workflow-2)
     - [Team Members](#team-members)
     - [Plans / Docs](#plans--docs-2)
+  - [agent-hackathon](#agent-hackathon)
+  - [agent-orchestra](#agent-orchestra)
 
 ---
 
@@ -200,3 +202,54 @@ wellness-team/
     plans/                          # approved plans (output of /team-kickoff)
     content/                        # full deliverables (output of /team-execute)
 ```
+
+---
+
+### agent-hackathon
+
+A mini hackathon run entirely by AI agents — from ideation to code to judging. Two teams of Claude Code subagents competed to build the best AI-powered CLI tool, while a commentator documented the process and AI judges scored the results. No humans wrote any code, pitches, logs, or scorecards.
+
+#### Agent Workflow
+
+9 agents across 3 sequential phases, orchestrated via `/team-kickoff` and `/team-execute`. Engineers on the same team communicated through shared log files; teams were isolated from each other. Judges read source code, built both tools, and ran test suites before scoring.
+
+| Phase | Teammates | Output |
+|-------|-----------|--------|
+| **1. Ideation** | 4 engineers (2 per team) + 1 commentator | Pitches, team logs, recap |
+| **2. Build** | 4 engineers (2 per team) + 1 commentator | Working Go CLI tools with tests |
+| **3. Judging** | 3 specialist judges + 1 head judge | Independent scorecards + final results |
+
+#### Plans / Docs
+
+```
+agent-hackathon/
+  PROJECT.md                            # hackathon rules and format
+  docs/
+    phase-1-ideation/kickoff.yaml       # ideation phase config
+    phase-2-build/kickoff.yaml          # build phase config
+    phase-3-judging/kickoff.yaml        # judging phase config
+    phase-*/plans/                      # individual agent plan docs
+  output/
+    team-alpha/                         # config-doctor source code, pitch, logs
+    team-beta/                          # git-wtf source code, pitch, logs
+    recap.md                            # commentator observations
+    scorecard.md                        # final judging results
+```
+
+---
+
+### agent-orchestra
+
+A Go CLI that orchestrates large software projects across multiple AI agent teams. Define teams, tasks, and dependencies in an `orchestra.yaml`, then run `orchestra run`. It builds a DAG (Kahn's algorithm), executes teams tier-by-tier (parallel within a tier, sequential across tiers), and flows results forward so downstream teams get full context.
+
+#### Architecture
+
+Each team is spawned as a `claude -p` subprocess with a constructed prompt containing its role, context, tasks, and completed dependency results. Teams can run in solo mode (lead works directly) or team-lead mode (lead spawns teammates via `TeamCreate`).
+
+```
+orchestra.yaml  →  validate  →  DAG (Kahn's)  →  tier-by-tier execution
+                                                    Tier 0: [backend, auth]    (parallel)
+                                                    Tier 1: [frontend, devops] (parallel)
+                                                    Tier 2: [integration]
+```
+
