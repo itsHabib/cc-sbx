@@ -13,3 +13,6 @@
 [submodule "agent-orchestra"]
 	path = agent-orchestra
 	url = git@github.com:itsHabib/orchestra.git
+[submodule "ingest"]
+	path = ingest
+	url = git@github.com:itsHabib/ingest.git

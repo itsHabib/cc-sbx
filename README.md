@@ -20,6 +20,7 @@ A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus o
     - [Plans / Docs](#plans--docs-2)
   - [agent-hackathon](#agent-hackathon)
   - [agent-orchestra](#agent-orchestra)
+  - [ingest](#ingest)
 
 ---
 
@@ -251,5 +252,51 @@ orchestra.yaml  →  validate  →  DAG (Kahn's)  →  tier-by-tier execution
                                                     Tier 0: [backend, auth]    (parallel)
                                                     Tier 1: [frontend, devops] (parallel)
                                                     Tier 2: [integration]
+```
+
+---
+
+### ingest
+
+A multi-tenant, Kafka-backed distributed ingestion and query engine in Go. Uses Kafka as the durability layer instead of a traditional Write-Ahead Log (WAL), making ingesters completely stateless. Built from scratch to deeply understand distributed ingestion design — stateless ingesters, consistent hashing, backpressure propagation, at-least-once delivery guarantees, and time-series query execution.
+
+#### Agent Workflow
+
+Built entirely using `/team-kickoff` and `/team-code-execute` across 11 phases, each with 3 specialized AI engineers. Every phase followed the same loop: plan in parallel → approve → code in parallel → self-verify (`go build`, `go test`, `go vet`) → human review between phases.
+
+#### Phases
+
+| Phase | Engineers | Focus |
+|-------|-----------|-------|
+| **1. Foundation** | infra, model, gateway | Docker Compose (Kafka KRaft), data types, HTTP push endpoint |
+| **2. Core Engine** | ring, storage, ingester | Consistent hash ring, object storage, Kafka consumer + batcher |
+| **3. Production** | tenancy, observability, integration | Rate limiting, Prometheus/Grafana, S3/MinIO, load generator |
+| **4. Quality** | unit-test, integration-test, chaos | Unit coverage, E2E pipeline tests, crash recovery + failure injection |
+| **5. Performance** | benchmark, load-test, profiling | Micro-benchmarks, load profiles, pprof optimization |
+| **6. Query Foundation** | index, query-api, block-reader | Block index, HTTP query API, parallel block reading |
+| **7. Compaction & Caching** | compactor, block-format, cache | Background compaction, structured block format, LRU cache |
+| **8. Query Performance** | query-planner, fanout, query-bench | Query planning, parallel fan-out, read-path benchmarks |
+| **9. K8s Foundation** | k8s-manifest, kafka-cluster, config | K8s manifests, Strimzi 3-broker Kafka, Kustomize overlays |
+| **10. Scaling & Observability** | autoscaling, tracing, resilience | HPA/KEDA autoscaling, OpenTelemetry tracing, PDBs |
+| **11. CI/CD & Operations** | cicd, gitops, operations | GitHub Actions, ArgoCD GitOps, alerting rules, runbooks, SLOs |
+
+#### Plans / Docs
+
+```
+ingest/
+  PROJECT.md                          # source of truth
+  AGENTS.md                           # full agent development process
+  docs/
+    foundation/                       # Phase 1 plans
+    core-engine/                      # Phase 2 plans
+    production/                       # Phase 3 plans
+    quality/                          # Phase 4 plans
+    performance/                      # Phase 5 plans + report
+    query-foundation/                 # Phase 6 plans
+    compaction/                       # Phase 7 plans
+    query-performance/                # Phase 8 plans
+    k8s-foundation/                   # Phase 9 plans
+    k8s-scaling/                      # Phase 10 plans
+    k8s-operations/                   # Phase 11 plans
 ```
 
