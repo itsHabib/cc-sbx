@@ -1,0 +1,214 @@
+phase: "core"
+
+goal: >
+  Build the foundation: provider interface, skill model, Claude Code provider,
+  sync engine, diff engine, config parsing, and CLI skeleton.
+
+system_context: |
+  ## Project: skill-sync
+  A Go CLI that syncs AI assistant skills from a primary provider to others with drift detection.
+
+  ## What we're building in this phase
+  The core abstractions and first working provider. By the end of this phase, a user should be
+  able to configure a source (Claude Code) and run the sync/diff engine programmatically
+  (CLI commands come in Phase 2, but `init` is wired up here).
+
+  ## Architecture
+  ```
+  skill-sync/
+  ├── main.go                          # cobra entrypoint
+  ├── go.mod
+  ├── cmd/
+  │   ├── root.go                      # root command + global flags
+  │   └── init.go                      # `skill-sync init` command
+  ├── internal/
+  │   ├── config/
+  │   │   └── config.go                # .skill-sync.yaml parsing
+  │   ├── provider/
+  │   │   ├── provider.go              # Provider interface + Skill model
+  │   │   ├── registry.go              # provider registry (name -> Provider)
+  │   │   ├── claude.go                # Claude Code provider implementation
+  │   │   └── claude_test.go           # tests for Claude provider
+  │   └── sync/
+  │       ├── engine.go                # sync engine (source -> targets)
+  │       ├── diff.go                  # diff/drift detection
+  │       └── engine_test.go           # tests for sync + diff
+  ```
+
+  ## Key design decisions
+
+  ### Provider interface
+  ```go
+  type Skill struct {
+      Name        string   // derived from filename (no extension)
+      Description string   // first-line description if present
+      Content     string   // full skill content (markdown body)
+      Arguments   []string // extracted argument placeholders
+      SourcePath  string   // absolute path to source file
+  }
+
+  type Provider interface {
+      Name() string
+      ListSkills() ([]Skill, error)
+      ReadSkill(name string) (*Skill, error)
+      WriteSkill(skill Skill) error
+      SkillDir() string
+  }
+  ```
+
+  ### Registry
+  Simple map[string]Provider with Register/Get functions. All providers register at init time.
+
+  ### Config format (.skill-sync.yaml)
+  ```yaml
+  source: claude
+  targets:
+    - copilot
+    - gemini
+    - factory
+  skills: []  # empty = sync all, or list specific skill names
+  ```
+
+  ### Sync engine
+  - Reads all skills from source provider
+  - For each target, writes each skill (translating format as needed)
+  - Returns a SyncResult with counts (synced, skipped, errored)
+
+  ### Diff engine
+  - For each target, compares source skills against target state
+  - Reports per-skill status: InSync, Modified, MissingInTarget, ExtraInTarget
+  - Modified includes a unified diff string
+
+  ### Claude Code provider specifics
+  - Reads from ~/.claude/commands/*.md
+  - Filename (minus .md) = skill name
+  - Parses first line: if it starts with "# " treat it as description
+  - Scans content for $ARGUMENTS patterns
+  - WriteSkill creates the .md file in the target dir
+
+  ### Coding conventions
+  - All errors wrapped with fmt.Errorf("context: %w", err)
+  - Table-driven tests
+  - No global state; providers and engine take config via constructors
+  - Use os.UserHomeDir() for ~ expansion
+
+dependencies:
+  - PROJECT.md
+
+plans_dir: docs/core/plans
+content_dir: docs/core/content
+
+teammates:
+  - role: "Provider Architect"
+    doc: provider-architect.md
+    focus: |
+      Define the core abstractions that everything else builds on:
+
+      **internal/provider/provider.go**
+      - Skill struct: Name, Description, Content, Arguments []string, SourcePath
+      - Provider interface: Name(), ListSkills(), ReadSkill(name), WriteSkill(skill), SkillDir()
+      - TranslateSkill(skill Skill, target Provider) helper if format translation is needed
+      - SkillStatus enum: InSync, Modified, MissingInTarget, ExtraInTarget
+
+      **internal/provider/registry.go**
+      - Package-level registry: map[string]Provider
+      - Register(provider Provider) — called by each provider's init()
+      - Get(name string) (Provider, error) — returns error if not found
+      - List() []string — returns registered provider names
+
+      Keep types clean and minimal. No provider implementations here — just the contracts.
+
+  - role: "Claude Provider Dev"
+    doc: claude-provider.md
+    focus: |
+      Implement the Claude Code provider — this is the most important provider since it's
+      likely the user's source of truth.
+
+      **internal/provider/claude.go**
+      - Struct: ClaudeProvider with baseDir field (defaults to ~/.claude/commands/)
+      - NewClaudeProvider(opts ...Option) — functional options for custom baseDir (useful for testing)
+      - ListSkills(): glob *.md in baseDir, parse each
+      - ReadSkill(name): read baseDir/name.md, parse into Skill
+      - WriteSkill(skill): write skill to baseDir/skill.Name.md
+      - Parsing logic:
+        - Filename minus .md = skill name
+        - First line starting with "# " = description (strip the "# " prefix)
+        - Scan for $ARGUMENTS or ${ARG_NAME} patterns -> populate Arguments
+        - Full file content = Content field
+      - Register in init() via registry.Register()
+
+      **internal/provider/claude_test.go**
+      - Use t.TempDir() for isolated test directories
+      - Test ListSkills with multiple .md files
+      - Test ReadSkill parsing: description extraction, argument detection
+      - Test WriteSkill round-trip: write then read, verify equality
+      - Test edge cases: empty file, no description line, file with no arguments
+
+  - role: "Sync Engine Dev"
+    doc: sync-engine.md
+    focus: |
+      Build the sync and diff engines that power the core commands.
+
+      **internal/sync/engine.go**
+      - SyncEngine struct: source Provider, targets []Provider
+      - NewSyncEngine(source Provider, targets []Provider) *SyncEngine
+      - Sync(skillFilter []string) (*SyncResult, error)
+        - Reads all skills from source (or filtered subset)
+        - For each target, calls target.WriteSkill() for each skill
+        - Collects results: synced count, error count, per-skill details
+      - SyncResult struct: TotalSynced, TotalErrored, Details []SyncDetail
+      - SyncDetail: SkillName, Target, Status (success/error), Error
+
+      **internal/sync/diff.go**
+      - DiffEngine struct: source Provider, targets []Provider
+      - NewDiffEngine(source, targets) *DiffEngine
+      - Status() (*DriftReport, error)
+        - For each target, compare source skills vs target skills
+        - For matching skills, compare content (normalized whitespace)
+        - Report: InSync, Modified, MissingInTarget, ExtraInTarget
+      - Diff(targetName string) (*DetailedDiff, error)
+        - For a specific target, produce unified diff for each modified skill
+      - DriftReport: map[targetName][]SkillDrift
+      - SkillDrift: SkillName, Status, UnifiedDiff (only for Modified)
+      - Use stdlib "os/exec" or a simple diff algorithm for unified diffs
+        (or just line-by-line comparison — keep it simple)
+
+      **internal/sync/engine_test.go**
+      - Create mock providers (or use ClaudeProvider with t.TempDir())
+      - Test Sync: source has 3 skills, target gets all 3
+      - Test Sync with filter: only syncs named skills
+      - Test Status: source and target in sync -> all InSync
+      - Test Status: modify a target skill -> reports Modified
+      - Test Status: delete from target -> reports MissingInTarget
+      - Test Diff: returns unified diff string for modified skills
+
+  - role: "Config & CLI Foundation"
+    doc: config-cli.md
+    focus: |
+      Set up the Go module, CLI skeleton, config parsing, and init command.
+
+      **go.mod**
+      - Module: github.com/user/skill-sync (use a placeholder module path)
+      - Go 1.22
+      - Dependencies: github.com/spf13/cobra, gopkg.in/yaml.v3
+
+      **main.go**
+      - Simple entrypoint: calls cmd.Execute()
+
+      **cmd/root.go**
+      - Root cobra command: "skill-sync" with short/long description
+      - Global flags: --config (path to .skill-sync.yaml, default .skill-sync.yaml)
+      - PersistentPreRunE: loads config from flag path, stores in context or package var
+      - Execute() function called from main.go
+
+      **cmd/init.go**
+      - `skill-sync init` command
+      - Interactive prompts (or flags) to pick source and targets
+      - Writes .skill-sync.yaml to current directory
+      - Validates that chosen provider names are in the registry
+
+      **internal/config/config.go**
+      - Config struct: Source string, Targets []string, Skills []string
+      - Load(path string) (*Config, error) — reads and parses YAML
+      - Validate(registry) error — checks source/target names exist in registry
+      - Default config path: .skill-sync.yaml

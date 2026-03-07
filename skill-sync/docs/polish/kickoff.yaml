@@ -1,0 +1,154 @@
+phase: "polish"
+
+goal: >
+  Polish the developer experience: rich README, architecture diagram, CLI help text,
+  and docstrings on all exported code.
+
+system_context: |
+  ## Project: skill-sync
+  A Go CLI that syncs AI assistant skills from a primary provider to others with drift detection.
+
+  ## What exists from Phases 1-3
+  - Fully functional CLI: init, sync, status, diff
+  - 4 providers: Claude Code, Copilot, Gemini CLI, Factory AI Droid
+  - Sync engine + diff/drift detection
+  - Unit tests + smoke test
+  - Test plan + edge case documentation
+
+  ## What we're building in this phase
+  Making skill-sync look and feel like a polished open-source tool:
+  1. A README that sells the tool and gets people using it in 60 seconds
+  2. CLI --help text that is genuinely helpful (examples, not just flag descriptions)
+  3. Docstrings on all exported types and functions
+
+  ## Tone and style
+  - Developer-facing, practical, no marketing fluff
+  - Show, don't tell — use examples and real output
+  - README should have a "wow this is useful" moment in the first 30 seconds
+  - CLI help should answer "how do I use this?" without needing the README
+
+  ## Existing file structure
+  ```
+  skill-sync/
+  ├── main.go
+  ├── go.mod
+  ├── cmd/
+  │   ├── root.go
+  │   ├── init.go
+  │   ├── sync.go
+  │   ├── status.go
+  │   └── diff.go
+  ├── internal/
+  │   ├── config/
+  │   │   └── config.go
+  │   ├── provider/
+  │   │   ├── provider.go
+  │   │   ├── registry.go
+  │   │   ├── claude.go
+  │   │   ├── copilot.go
+  │   │   ├── gemini.go
+  │   │   └── factory.go
+  │   └── sync/
+  │       ├── engine.go
+  │       └── diff.go
+  ├── tests/
+  │   ├── smoke_test.go
+  │   └── testdata/
+  └── docs/
+  ```
+
+dependencies:
+  - PROJECT.md
+  - docs/core/content/
+  - docs/providers-and-commands/content/
+  - docs/validation/content/
+
+plans_dir: docs/polish/plans
+content_dir: docs/polish/content
+
+teammates:
+  - role: "README Author"
+    doc: readme-author.md
+    focus: |
+      Write a README.md that makes people want to use skill-sync immediately.
+
+      **README.md** (project root)
+      Structure:
+      1. **One-liner + tagline** — what it does in one sentence
+      2. **The problem** — 3-4 sentences on why skill sync across providers is painful
+      3. **Quick start** — install, init, sync in <5 commands
+      4. **Usage examples** — real terminal output for each command:
+         - `skill-sync init`
+         - `skill-sync sync`
+         - `skill-sync status` (showing drift)
+         - `skill-sync diff copilot`
+      5. **Architecture diagram** — mermaid diagram showing:
+         - Source provider -> skill-sync -> target providers
+         - The Skill model as the intermediate representation
+      6. **Supported providers** — table with provider name, skill location, format
+      7. **Configuration** — .skill-sync.yaml format with all options
+      8. **How it works** — brief explanation of sync, status, diff
+      9. **Contributing** — brief section
+
+      Use realistic example output. Make it feel like a tool people already use.
+      No badges (user can add those later). No emojis.
+
+  - role: "CLI UX Dev"
+    doc: cli-ux.md
+    focus: |
+      Polish every CLI command's --help output and error messages.
+
+      **cmd/root.go, cmd/init.go, cmd/sync.go, cmd/status.go, cmd/diff.go**
+      For each command, improve:
+
+      1. **Short description** — clear, under 60 chars
+      2. **Long description** — 2-3 sentences explaining what the command does
+      3. **Example block** — real usage examples using cobra's Example field:
+         ```
+         Examples:
+           # Initialize with Claude as source
+           skill-sync init --source claude --targets copilot,gemini
+
+           # Sync all skills
+           skill-sync sync
+
+           # Preview what would be synced
+           skill-sync sync --dry-run
+         ```
+      4. **Error messages** — when something goes wrong, tell the user:
+         - What happened
+         - Why it probably happened
+         - What to do about it
+         Example: "Error: provider 'foo' not found. Available providers: claude, copilot, gemini, factory"
+
+      Read the existing cmd/ files first, then enhance in-place.
+      Don't restructure the code — just improve the UX strings.
+
+  - role: "Code Quality Dev"
+    doc: code-quality.md
+    focus: |
+      Add Go doc comments to all exported types, functions, and package declarations.
+
+      **All internal/ packages:**
+      - internal/provider/provider.go — document Provider interface, Skill struct, each field
+      - internal/provider/registry.go — document Register, Get, List functions
+      - internal/provider/claude.go — document ClaudeProvider, its methods, format assumptions
+      - internal/provider/copilot.go — same pattern
+      - internal/provider/gemini.go — same pattern
+      - internal/provider/factory.go — same pattern
+      - internal/sync/engine.go — document SyncEngine, Sync, SyncResult
+      - internal/sync/diff.go — document DiffEngine, Status, Diff, DriftReport
+      - internal/config/config.go — document Config struct, Load, Validate
+
+      **Package-level doc comments:**
+      Add a package doc comment at the top of each package's primary file:
+      - package provider — "Package provider defines the skill model and provider interface..."
+      - package sync — "Package sync implements the sync and diff engines..."
+      - package config — "Package config handles .skill-sync.yaml parsing..."
+
+      Rules:
+      - Follow Go doc conventions (start with the name of the thing being documented)
+      - Keep comments concise — one sentence for simple things, a short paragraph for complex ones
+      - Don't state the obvious ("Name returns the name" is useless)
+      - DO document non-obvious behavior, format assumptions, error conditions
+      - Read each file first to understand what it actually does before writing docs

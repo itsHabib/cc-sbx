@@ -1,0 +1,224 @@
+phase: "providers-and-commands"
+
+goal: >
+  Implement Copilot, Gemini, and Factory providers, then wire up the sync, status,
+  and diff CLI commands.
+
+system_context: |
+  ## Project: skill-sync
+  A Go CLI that syncs AI assistant skills from a primary provider to others with drift detection.
+
+  ## What exists from Phase 1
+  - Provider interface + Skill model in internal/provider/provider.go
+  - Provider registry in internal/provider/registry.go
+  - Claude Code provider in internal/provider/claude.go (reference implementation)
+  - Sync engine in internal/sync/engine.go
+  - Diff engine in internal/sync/diff.go
+  - Config parsing in internal/config/config.go
+  - CLI skeleton with root + init commands
+
+  ## What we're building in this phase
+  Three more providers + three CLI commands. After this phase, the tool is fully functional.
+
+  ## Provider implementation pattern (follow Claude provider)
+  Each provider must:
+  1. Implement the Provider interface: Name(), ListSkills(), ReadSkill(), WriteSkill(), SkillDir()
+  2. Use NewXxxProvider(opts ...Option) constructor with functional options (at minimum baseDir override)
+  3. Register itself via init() { registry.Register(NewXxxProvider()) }
+  4. Parse provider-specific format into the normalized Skill model
+  5. Write Skill model back into provider-specific format
+
+  ## Provider format details (VERIFIED)
+
+  ### GitHub Copilot
+  - Prompt files (reusable skills): `.github/prompts/*.prompt.md`
+  - Pure Markdown, NO frontmatter
+  - Can reference files: `#file:../../path/to/file.ts` or `[label](../../path)`
+  - Become slash commands in VS Code/JetBrains (e.g., `/review-code`)
+  - No user-level prompt directory — only project-level
+  - For skill-sync: we write to `~/.github/prompts/*.prompt.md` as user-level equivalent
+  - Skill name: filename minus `.prompt.md` extension
+  - No native description field — use first `# ` line as convention (like Claude)
+
+  ### Gemini CLI
+  - User-level: `~/.gemini/commands/*.toml`
+  - Project-level: `<project>/.gemini/commands/*.toml`
+  - **TOML format** (not Markdown!)
+  - Required field: `prompt` (string — the prompt content)
+  - Optional field: `description` (string — shown in /help)
+  - Arguments: `{{args}}` placeholder, `!{shell cmd}`, `@{file path}`
+  - Subdirs create namespaced commands: `git/commit.toml` → `/git:commit`
+  - After changes: `/commands reload`
+  - Key challenge: must convert between Markdown (Skill.Content) and TOML prompt field
+
+  ### Factory AI Droid
+  - User-level droids: `~/.factory/droids/*.md`
+  - Project-level skills: `.factory/skills/<name>/SKILL.md`
+  - Markdown with optional YAML frontmatter:
+    ```yaml
+    ---
+    name: worker
+    description: General-purpose worker droid
+    model: inherit
+    ---
+    ```
+  - Frontmatter fields: `name` (required), `description` (required), `model` (optional)
+  - Body: Markdown prompt content after frontmatter
+  - Some droids have NO frontmatter (plain markdown) — handle both cases
+  - Skill name: from frontmatter `name` field, or filename minus `.md`
+
+  ## CLI command patterns
+  All commands should:
+  - Load config via the root command's PersistentPreRunE
+  - Instantiate providers from config
+  - Build sync/diff engine
+  - Use cobra's RunE (not Run) for error handling
+  - Print human-readable output to stdout
+  - Exit with non-zero status on errors
+
+  ## Coding conventions (same as Phase 1)
+  - All errors wrapped with fmt.Errorf("context: %w", err)
+  - Table-driven tests
+  - No global state; use constructors
+  - Use os.UserHomeDir() for ~ expansion
+
+dependencies:
+  - PROJECT.md
+  - docs/core/content/
+
+plans_dir: docs/providers-and-commands/plans
+content_dir: docs/providers-and-commands/content
+
+teammates:
+  - role: "Copilot Provider Dev"
+    doc: copilot-provider.md
+    focus: |
+      Implement the GitHub Copilot provider for prompt files (.prompt.md).
+
+      **internal/provider/copilot.go**
+      - Struct: CopilotProvider with baseDir field (defaults to .github/prompts/ — project-level)
+      - NewCopilotProvider(opts ...Option) with functional options for baseDir override
+      - Copilot prompt files are `.prompt.md` — pure Markdown, NO frontmatter
+      - Filename format: `<skill-name>.prompt.md`
+      - Skill name: filename minus `.prompt.md` (e.g., `review-code.prompt.md` → `review-code`)
+      - ListSkills(): glob `*.prompt.md` in baseDir
+      - ReadSkill(name): read `<name>.prompt.md`, parse like Claude (first `# ` line = description)
+      - WriteSkill(skill): write to `<name>.prompt.md`
+        - If Description is set, write `# <description>` as first line
+        - Then write Content body
+      - Register via init() as "copilot"
+      - Note: Copilot also supports `#file:path` references in prompts — preserve these in Content
+
+      **internal/provider/copilot_test.go**
+      - Same patterns as claude_test.go using t.TempDir()
+      - Test file extension handling (.prompt.md not just .md)
+      - Test round-trip: write then read
+      - Test edge cases: empty file, no description
+
+  - role: "Gemini Provider Dev"
+    doc: gemini-provider.md
+    focus: |
+      Implement the Gemini CLI provider. KEY DIFFERENCE: Gemini uses TOML, not Markdown.
+
+      **internal/provider/gemini.go**
+      - Struct: GeminiProvider with baseDir field (defaults to ~/.gemini/commands/)
+      - NewGeminiProvider(opts ...Option) with functional options for baseDir override
+      - Gemini commands are `.toml` files with this format:
+        ```toml
+        description = "Brief description"
+        prompt = """
+        Multi-line prompt content here.
+        Supports {{args}}, !{shell}, @{file} placeholders.
+        """
+        ```
+      - Required TOML field: `prompt` (string)
+      - Optional TOML field: `description` (string)
+      - ListSkills(): glob `*.toml` in baseDir (also handle subdirs for namespaced commands)
+      - ReadSkill(name): read `<name>.toml`, parse TOML
+        - `prompt` field → Skill.Content
+        - `description` field → Skill.Description
+        - Scan prompt for `{{args}}` → Skill.Arguments
+      - WriteSkill(skill): write TOML file
+        - Skill.Description → `description` field (if non-empty)
+        - Skill.Content → `prompt` field (use multi-line TOML string)
+      - Register via init() as "gemini"
+      - TOML parsing: use `github.com/BurntSushi/toml` (add to go.mod)
+      - Namespacing: `git/commit.toml` → skill name `git:commit` (convert `/` to `:`)
+
+      **internal/provider/gemini_test.go**
+      - Test TOML round-trip: write then read
+      - Test description extraction from TOML
+      - Test prompt content with {{args}} placeholder → Arguments
+      - Test namespaced commands (subdirectory handling)
+      - Test edge cases: no description, empty prompt, multi-line prompt
+
+  - role: "Factory Provider Dev"
+    doc: factory-provider.md
+    focus: |
+      Implement the Factory AI Droid provider. Droids use Markdown with optional YAML frontmatter.
+
+      **internal/provider/factory.go**
+      - Struct: FactoryProvider with baseDir field (defaults to .factory/skills/ — project-level)
+      - NewFactoryProvider(opts ...Option) with functional options for baseDir override
+      - Factory droids are `.md` files with optional YAML frontmatter:
+        ```yaml
+        ---
+        name: worker
+        description: >-
+          General-purpose worker droid for delegating tasks.
+        model: inherit
+        ---
+        # Worker Droid
+
+        Markdown prompt body here.
+        ```
+      - Frontmatter fields: `name` (string), `description` (string), `model` (string, optional)
+      - IMPORTANT: Some droids have NO frontmatter (plain markdown body only) — handle both
+      - Project-level structure: `.factory/skills/<name>/SKILL.md` (each skill is a directory)
+      - ListSkills(): scan baseDir for subdirectories, read `SKILL.md` in each
+      - ReadSkill(name): read `<baseDir>/<name>/SKILL.md`, parse frontmatter if present
+        - Frontmatter `name` → Skill.Name (fallback to directory name)
+        - Frontmatter `description` → Skill.Description
+        - Everything after frontmatter → Skill.Content
+        - If no frontmatter, first `# ` line → Skill.Description (like Claude)
+      - WriteSkill(skill): create `<baseDir>/<skill.Name>/SKILL.md` with YAML frontmatter
+        - Create subdirectory if needed (os.MkdirAll)
+        - Always write frontmatter block with `name` and `description`
+        - Omit `model` field (use source default)
+        - Then write Content as markdown body
+      - Register via init() as "factory"
+      - Frontmatter parsing: split on `---` delimiters, parse YAML with `gopkg.in/yaml.v3`
+
+      **internal/provider/factory_test.go**
+      - Test with frontmatter: parse name, description, body
+      - Test without frontmatter: plain markdown handling
+      - Test round-trip: write then read (always writes frontmatter)
+      - Test edge cases: empty file, frontmatter only, no description
+
+  - role: "CLI Commands Dev"
+    doc: cli-commands.md
+    focus: |
+      Wire up the three remaining CLI commands that use the sync and diff engines.
+
+      **cmd/sync.go**
+      - `skill-sync sync` command
+      - Loads config, instantiates source + target providers from registry
+      - Builds SyncEngine, calls Sync()
+      - Flags: --dry-run (show what would sync without writing), --skill (filter to specific skill names)
+      - Output: table showing each skill x target with status (synced/skipped/error)
+      - Exit 1 if any errors occurred
+
+      **cmd/status.go**
+      - `skill-sync status` command
+      - Loads config, instantiates providers, builds DiffEngine
+      - Calls Status(), prints drift report
+      - Output: table per target showing skill status (in-sync/modified/missing/extra)
+      - Use color or symbols: checkmark for in-sync, ! for modified, - for missing, + for extra
+      - Exit 1 if any drift detected (useful for CI)
+
+      **cmd/diff.go**
+      - `skill-sync diff [provider]` command
+      - Takes a target provider name as argument
+      - Calls Diff(providerName), prints unified diff for each modified skill
+      - If no provider specified, show diff for all targets
+      - Output: standard unified diff format (like git diff)
