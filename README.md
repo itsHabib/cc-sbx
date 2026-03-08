@@ -19,9 +19,17 @@ A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus o
     - [Team Members](#team-members)
     - [Plans / Docs](#plans--docs-2)
   - [agent-hackathon](#agent-hackathon)
+    - [Agent Workflow](#agent-workflow-3)
+    - [Plans / Docs](#plans--docs-3)
   - [agent-orchestra](#agent-orchestra)
+    - [Architecture](#architecture)
   - [ingest](#ingest)
+    - [Agent Workflow](#agent-workflow-4)
+    - [Phases](#phases-1)
+    - [Plans / Docs](#plans--docs-4)
   - [skill-sync](#skill-sync)
+    - [Agent Workflow](#agent-workflow-5)
+    - [Commands](#commands)
 
 ---
 
