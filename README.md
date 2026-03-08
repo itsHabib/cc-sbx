@@ -21,6 +21,7 @@ A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus o
   - [agent-hackathon](#agent-hackathon)
   - [agent-orchestra](#agent-orchestra)
   - [ingest](#ingest)
+  - [skill-sync](#skill-sync)
 
 ---
 
@@ -299,4 +300,23 @@ ingest/
     k8s-scaling/                      # Phase 10 plans
     k8s-operations/                   # Phase 11 plans
 ```
+
+---
+
+### skill-sync
+
+A Go CLI that syncs custom skills across AI coding assistant providers. All major providers (Claude Code, GitHub Copilot, Gemini CLI, Factory AI) use the same [Agent Skills open standard](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) (`SKILL.md` files), but each stores them in a different directory. skill-sync lets you declare one provider as the source of truth and copies skills to all configured targets, with `status` and `diff` commands to catch drift.
+
+#### Agent Workflow
+
+Built using `/team-kickoff` and `/team-code-execute` across two phases with specialized AI engineers. Each phase followed the same plan → approve → code → self-verify loop.
+
+#### Commands
+
+| Command | Purpose |
+|---------|---------|
+| `skill-sync init` | Create `.skill-sync.yaml` config |
+| `skill-sync sync` | Copy skills from source to all targets |
+| `skill-sync status` | Report drift across targets (exit 1 if drift detected) |
+| `skill-sync diff` | Show unified diffs for modified skills |
 

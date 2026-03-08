@@ -16,3 +16,6 @@
 [submodule "ingest"]
 	path = ingest
 	url = git@github.com:itsHabib/ingest.git
+[submodule "skill-sync"]
+	path = skill-sync
+	url = git@github.com:itsHabib/skill-sync.git
