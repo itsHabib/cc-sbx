@@ -37,6 +37,38 @@ skills:
 	}
 }
 
+func TestLoad_WithDirOverrides(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".skill-sync.yaml")
+	content := `source: claude
+source_dir: /custom/claude/skills
+targets:
+  - copilot
+  - gemini
+target_dirs:
+  copilot: /custom/copilot/skills
+  gemini: /custom/gemini/skills
+skills: []
+`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.SourceDir != "/custom/claude/skills" {
+		t.Errorf("SourceDir = %q, want %q", cfg.SourceDir, "/custom/claude/skills")
+	}
+	if cfg.TargetDirs["copilot"] != "/custom/copilot/skills" {
+		t.Errorf("TargetDirs[copilot] = %q, want %q", cfg.TargetDirs["copilot"], "/custom/copilot/skills")
+	}
+	if cfg.TargetDirs["gemini"] != "/custom/gemini/skills" {
+		t.Errorf("TargetDirs[gemini] = %q, want %q", cfg.TargetDirs["gemini"], "/custom/gemini/skills")
+	}
+}
+
 func TestLoad_MissingFile(t *testing.T) {
 	_, err := Load("/nonexistent/path/.skill-sync.yaml")
 	if err == nil {
@@ -156,6 +188,21 @@ func TestValidate_EmptyTargets(t *testing.T) {
 	err := cfg.Validate([]string{"claude", "copilot"})
 	if err == nil {
 		t.Fatal("Validate() expected error for empty targets")
+	}
+}
+
+func TestValidate_TargetDirsInvalidKey(t *testing.T) {
+	cfg := &Config{
+		Source:     "claude",
+		Targets:    []string{"copilot"},
+		TargetDirs: map[string]string{"gemini": "/some/path"},
+	}
+	err := cfg.Validate([]string{"claude", "copilot", "gemini"})
+	if err == nil {
+		t.Fatal("Validate() expected error for target_dirs key not in targets")
+	}
+	if got := err.Error(); !contains(got, "not in targets list") {
+		t.Errorf("error should mention 'not in targets list', got: %v", got)
 	}
 }
 

@@ -36,23 +36,31 @@ func copyFixtures(t *testing.T, dstDir string) {
 }
 
 // setupProviders creates temp directories and returns a Claude source provider
-// plus Copilot and Gemini target providers.
+// plus Copilot and Gemini target providers — all using SKILL.md format.
 func setupProviders(t *testing.T) (provider.Provider, []provider.Provider, string, string) {
 	t.Helper()
 
 	claudeDir := filepath.Join(t.TempDir(), "claude-skills")
-	copilotDir := filepath.Join(t.TempDir(), "copilot-prompts")
-	geminiDir := filepath.Join(t.TempDir(), "gemini-commands")
+	copilotDir := filepath.Join(t.TempDir(), "copilot-skills")
+	geminiDir := filepath.Join(t.TempDir(), "gemini-skills")
 
 	if err := os.MkdirAll(claudeDir, 0755); err != nil {
 		t.Fatalf("create claude dir: %v", err)
 	}
 
-	source := provider.NewClaudeProvider(provider.WithBaseDir(claudeDir))
-	targets := []provider.Provider{
-		provider.NewCopilotProvider(provider.WithCopilotBaseDir(copilotDir)),
-		provider.NewGeminiProvider(provider.WithGeminiBaseDir(geminiDir)),
+	source, err := provider.New("claude", claudeDir)
+	if err != nil {
+		t.Fatalf("create claude provider: %v", err)
 	}
+	copilot, err := provider.New("copilot", copilotDir)
+	if err != nil {
+		t.Fatalf("create copilot provider: %v", err)
+	}
+	gemini, err := provider.New("gemini", geminiDir)
+	if err != nil {
+		t.Fatalf("create gemini provider: %v", err)
+	}
+	targets := []provider.Provider{copilot, gemini}
 
 	return source, targets, copilotDir, geminiDir
 }
@@ -83,19 +91,19 @@ func TestSmoke_FullFlow(t *testing.T) {
 		t.Fatalf("Phase 2: expected 6 synced, got %d", result.TotalSynced)
 	}
 
-	// Verify Copilot files exist
+	// Verify Copilot files exist (SKILL.md format)
 	for _, name := range fixtureNames {
-		path := filepath.Join(copilotDir, name+".prompt.md")
+		path := filepath.Join(copilotDir, name, "SKILL.md")
 		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("Phase 2: Copilot file missing: %s", path)
+			t.Fatalf("Phase 2: Copilot skill missing: %s", path)
 		}
 	}
 
-	// Verify Gemini files exist
+	// Verify Gemini files exist (SKILL.md format)
 	for _, name := range fixtureNames {
-		path := filepath.Join(geminiDir, name+".toml")
+		path := filepath.Join(geminiDir, name, "SKILL.md")
 		if _, err := os.Stat(path); err != nil {
-			t.Fatalf("Phase 2: Gemini file missing: %s", path)
+			t.Fatalf("Phase 2: Gemini skill missing: %s", path)
 		}
 	}
 
@@ -116,7 +124,11 @@ func TestSmoke_FullFlow(t *testing.T) {
 	}
 
 	// -- Phase 4: Introduce drift --
-	driftFile := filepath.Join(copilotDir, "deploy.prompt.md")
+	driftDir := filepath.Join(copilotDir, "deploy")
+	if err := os.MkdirAll(driftDir, 0755); err != nil {
+		t.Fatalf("Phase 4: create drift dir: %v", err)
+	}
+	driftFile := filepath.Join(driftDir, "SKILL.md")
 	if err := os.WriteFile(driftFile, []byte("# MODIFIED deploy\nThis has been changed."), 0644); err != nil {
 		t.Fatalf("Phase 4: write drift file: %v", err)
 	}
@@ -197,21 +209,21 @@ func TestSmoke_SkillFilter(t *testing.T) {
 		t.Fatalf("expected 2 synced with filter, got %d", result.TotalSynced)
 	}
 
-	// "deploy" should exist in both targets
-	if _, err := os.Stat(filepath.Join(copilotDir, "deploy.prompt.md")); err != nil {
-		t.Error("deploy.prompt.md should exist in copilot dir")
+	// "deploy" should exist in both targets (SKILL.md format)
+	if _, err := os.Stat(filepath.Join(copilotDir, "deploy", "SKILL.md")); err != nil {
+		t.Error("deploy/SKILL.md should exist in copilot dir")
 	}
-	if _, err := os.Stat(filepath.Join(geminiDir, "deploy.toml")); err != nil {
-		t.Error("deploy.toml should exist in gemini dir")
+	if _, err := os.Stat(filepath.Join(geminiDir, "deploy", "SKILL.md")); err != nil {
+		t.Error("deploy/SKILL.md should exist in gemini dir")
 	}
 
 	// "simple" and "search" should NOT exist in targets
 	for _, name := range []string{"simple", "search"} {
-		if _, err := os.Stat(filepath.Join(copilotDir, name+".prompt.md")); err == nil {
-			t.Errorf("%s.prompt.md should NOT exist in copilot dir", name)
+		if _, err := os.Stat(filepath.Join(copilotDir, name, "SKILL.md")); err == nil {
+			t.Errorf("%s/SKILL.md should NOT exist in copilot dir", name)
 		}
-		if _, err := os.Stat(filepath.Join(geminiDir, name+".toml")); err == nil {
-			t.Errorf("%s.toml should NOT exist in gemini dir", name)
+		if _, err := os.Stat(filepath.Join(geminiDir, name, "SKILL.md")); err == nil {
+			t.Errorf("%s/SKILL.md should NOT exist in gemini dir", name)
 		}
 	}
 }

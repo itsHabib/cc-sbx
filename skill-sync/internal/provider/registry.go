@@ -6,34 +6,42 @@ import (
 	"sync"
 )
 
+// ProviderFactory creates a Provider with the given base directory.
+// If baseDir is empty, the provider uses its default directory.
+type ProviderFactory func(baseDir string) Provider
+
 var (
 	mu       sync.RWMutex
-	registry = make(map[string]Provider)
+	registry = make(map[string]ProviderFactory)
 )
 
-// Register adds a provider to the global registry.
+// Register adds a provider factory to the global registry.
 // It panics if a provider with the same name is already registered.
 // This is intended to be called from provider packages' init() functions.
-func Register(p Provider) {
+func Register(name string, factory ProviderFactory) {
 	mu.Lock()
 	defer mu.Unlock()
-	name := p.Name()
 	if _, exists := registry[name]; exists {
 		panic(fmt.Sprintf("provider: duplicate registration for %q", name))
 	}
-	registry[name] = p
+	registry[name] = factory
 }
 
-// Get returns the provider registered under the given name.
-// Returns an error if no provider is registered with that name.
-func Get(name string) (Provider, error) {
+// New creates a provider by name with an optional base directory override.
+// If baseDir is empty, the provider uses its default directory.
+func New(name, baseDir string) (Provider, error) {
 	mu.RLock()
 	defer mu.RUnlock()
-	p, ok := registry[name]
+	factory, ok := registry[name]
 	if !ok {
 		return nil, fmt.Errorf("provider: unknown provider %q", name)
 	}
-	return p, nil
+	return factory(baseDir), nil
+}
+
+// Get returns a provider with its default base directory.
+func Get(name string) (Provider, error) {
+	return New(name, "")
 }
 
 // List returns the names of all registered providers, sorted alphabetically.
@@ -52,5 +60,5 @@ func List() []string {
 func resetRegistry() {
 	mu.Lock()
 	defer mu.Unlock()
-	registry = make(map[string]Provider)
+	registry = make(map[string]ProviderFactory)
 }

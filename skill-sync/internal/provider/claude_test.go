@@ -19,8 +19,12 @@ func writeTestSkill(t *testing.T, dir, name, content string) {
 	}
 }
 
+func newTestProvider(name, dir string) Provider {
+	return &skillMDProvider{providerName: name, baseDir: dir}
+}
+
 func TestName(t *testing.T) {
-	p := NewClaudeProvider(WithBaseDir(t.TempDir()))
+	p := newTestProvider("claude", t.TempDir())
 	if got := p.Name(); got != "claude" {
 		t.Errorf("Name() = %q, want %q", got, "claude")
 	}
@@ -28,7 +32,7 @@ func TestName(t *testing.T) {
 
 func TestSkillDir(t *testing.T) {
 	dir := t.TempDir()
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	if got := p.SkillDir(); got != dir {
 		t.Errorf("SkillDir() = %q, want %q", got, dir)
 	}
@@ -40,7 +44,7 @@ func TestListSkills_MultipleFiles(t *testing.T) {
 	writeTestSkill(t, dir, "beta", "# Beta skill\nDo beta things")
 	writeTestSkill(t, dir, "gamma", "Just gamma content")
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skills, err := p.ListSkills()
 	if err != nil {
 		t.Fatalf("ListSkills() error: %v", err)
@@ -62,7 +66,7 @@ func TestListSkills_MultipleFiles(t *testing.T) {
 
 func TestListSkills_EmptyDir(t *testing.T) {
 	dir := t.TempDir()
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skills, err := p.ListSkills()
 	if err != nil {
 		t.Fatalf("ListSkills() error: %v", err)
@@ -74,7 +78,7 @@ func TestListSkills_EmptyDir(t *testing.T) {
 
 func TestListSkills_NonExistentDir(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nonexistent")
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	_, err := p.ListSkills()
 	if err == nil {
 		t.Error("ListSkills() expected error for nonexistent dir, got nil")
@@ -88,7 +92,7 @@ func TestListSkills_SkipsDirsWithoutSkillMD(t *testing.T) {
 	os.MkdirAll(filepath.Join(dir, "not-a-skill"), 0755)
 	os.WriteFile(filepath.Join(dir, "not-a-skill", "README.md"), []byte("not a skill"), 0644)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skills, err := p.ListSkills()
 	if err != nil {
 		t.Fatalf("ListSkills() error: %v", err)
@@ -106,7 +110,7 @@ func TestReadSkill_WithDescription(t *testing.T) {
 	content := "# Deploy to prod\nRun the deploy script with $ARGUMENTS"
 	writeTestSkill(t, dir, "deploy", content)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("deploy")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -127,7 +131,7 @@ func TestReadSkill_NoDescription(t *testing.T) {
 	content := "Just some regular content\nNo description here"
 	writeTestSkill(t, dir, "plain", content)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("plain")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -142,7 +146,7 @@ func TestReadSkill_HashWithoutSpace(t *testing.T) {
 	content := "#notadescription\nSome content"
 	writeTestSkill(t, dir, "hashno", content)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("hashno")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -157,7 +161,7 @@ func TestReadSkill_DoubleHash(t *testing.T) {
 	content := "## Section header\nSome content"
 	writeTestSkill(t, dir, "doublehash", content)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("doublehash")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -172,7 +176,7 @@ func TestReadSkill_WithArguments(t *testing.T) {
 	content := "# Search\nSearch for $ARGUMENTS in ${PROJECT} and ${QUERY}"
 	writeTestSkill(t, dir, "search", content)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("search")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -188,7 +192,7 @@ func TestReadSkill_NoArguments(t *testing.T) {
 	content := "# Simple\nJust do the thing"
 	writeTestSkill(t, dir, "simple", content)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("simple")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -203,7 +207,7 @@ func TestReadSkill_DuplicateArguments(t *testing.T) {
 	content := "Use $ARGUMENTS then $ARGUMENTS again and ${QUERY} then ${QUERY}"
 	writeTestSkill(t, dir, "dupes", content)
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("dupes")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -218,7 +222,7 @@ func TestReadSkill_EmptyFile(t *testing.T) {
 	dir := t.TempDir()
 	writeTestSkill(t, dir, "empty", "")
 
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	skill, err := p.ReadSkill("empty")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -239,7 +243,7 @@ func TestReadSkill_EmptyFile(t *testing.T) {
 
 func TestReadSkill_NonExistent(t *testing.T) {
 	dir := t.TempDir()
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 	_, err := p.ReadSkill("nonexistent")
 	if err == nil {
 		t.Error("ReadSkill() expected error for nonexistent skill, got nil")
@@ -248,7 +252,7 @@ func TestReadSkill_NonExistent(t *testing.T) {
 
 func TestWriteSkill_Basic(t *testing.T) {
 	dir := t.TempDir()
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 
 	content := "# My Skill\nDo the thing with $ARGUMENTS"
 	skill := Skill{
@@ -270,7 +274,7 @@ func TestWriteSkill_Basic(t *testing.T) {
 
 func TestWriteSkill_CreatesDir(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "new", "nested", "dir")
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 
 	skill := Skill{
 		Name:    "test",
@@ -287,7 +291,7 @@ func TestWriteSkill_CreatesDir(t *testing.T) {
 
 func TestWriteSkill_NoDescription(t *testing.T) {
 	dir := t.TempDir()
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 
 	content := "Just plain content, no description"
 	skill := Skill{
@@ -309,7 +313,7 @@ func TestWriteSkill_NoDescription(t *testing.T) {
 
 func TestWriteSkill_RoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 
 	original := Skill{
 		Name:    "roundtrip",
@@ -344,7 +348,7 @@ func TestWriteSkill_RoundTrip(t *testing.T) {
 
 func TestWriteSkill_RoundTrip_NoDescription(t *testing.T) {
 	dir := t.TempDir()
-	p := NewClaudeProvider(WithBaseDir(dir))
+	p := newTestProvider("claude", dir)
 
 	original := Skill{
 		Name:    "nodesc",
@@ -364,5 +368,24 @@ func TestWriteSkill_RoundTrip_NoDescription(t *testing.T) {
 	}
 	if got.Content != original.Content {
 		t.Errorf("Content = %q, want %q", got.Content, original.Content)
+	}
+}
+
+func TestReadSkill_WithFrontmatter(t *testing.T) {
+	dir := t.TempDir()
+	content := "---\nname: deploy\ndescription: Deploy to production\n---\n# Deploy\n\nRun the deploy script.\n"
+	writeTestSkill(t, dir, "deploy", content)
+
+	p := newTestProvider("claude", dir)
+	skill, err := p.ReadSkill("deploy")
+	if err != nil {
+		t.Fatalf("ReadSkill() error: %v", err)
+	}
+	if skill.Description != "Deploy to production" {
+		t.Errorf("Description = %q, want %q", skill.Description, "Deploy to production")
+	}
+	// Content should be the full raw file content (including frontmatter).
+	if skill.Content != content {
+		t.Errorf("Content = %q, want %q", skill.Content, content)
 	}
 }

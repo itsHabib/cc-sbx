@@ -14,8 +14,15 @@ type Config struct {
 	// Source is the provider name to read skills from (e.g., "claude").
 	Source string `yaml:"source"`
 
+	// SourceDir optionally overrides the source provider's default skill directory.
+	SourceDir string `yaml:"source_dir,omitempty"`
+
 	// Targets lists provider names to sync skills to (e.g., ["copilot", "gemini"]).
 	Targets []string `yaml:"targets"`
+
+	// TargetDirs optionally overrides target providers' default skill directories.
+	// Keys are provider names, values are directory paths.
+	TargetDirs map[string]string `yaml:"target_dirs,omitempty"`
 
 	// Skills optionally restricts syncing to the named skills.
 	// An empty list means all skills are synced. Uses YAML flow style for compact inline lists.
@@ -61,6 +68,20 @@ func (c *Config) Validate(registeredNames []string) error {
 		}
 		if t == c.Source {
 			errs = append(errs, fmt.Sprintf("source %q must not appear in targets", c.Source))
+		}
+	}
+
+	// Validate target_dirs keys reference valid targets.
+	for name := range c.TargetDirs {
+		found := false
+		for _, t := range c.Targets {
+			if t == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			errs = append(errs, fmt.Sprintf("target_dirs: %q is not in targets list", name))
 		}
 	}
 

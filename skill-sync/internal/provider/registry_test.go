@@ -4,22 +4,12 @@ import (
 	"testing"
 )
 
-// mockProvider implements Provider for testing.
-type mockProvider struct {
-	name string
-}
-
-func (m *mockProvider) Name() string                        { return m.name }
-func (m *mockProvider) ListSkills() ([]Skill, error)        { return nil, nil }
-func (m *mockProvider) ReadSkill(name string) (*Skill, error) { return nil, nil }
-func (m *mockProvider) WriteSkill(skill Skill) error        { return nil }
-func (m *mockProvider) SkillDir() string                    { return "/tmp/" + m.name }
-
 func TestRegister_And_Get(t *testing.T) {
 	resetRegistry()
 
-	p := &mockProvider{name: "test-provider"}
-	Register(p)
+	Register("test-provider", func(baseDir string) Provider {
+		return &skillMDProvider{providerName: "test-provider", baseDir: "/tmp/test-provider"}
+	})
 
 	got, err := Get("test-provider")
 	if err != nil {
@@ -42,7 +32,9 @@ func TestGet_Unknown(t *testing.T) {
 func TestRegister_Duplicate_Panics(t *testing.T) {
 	resetRegistry()
 
-	Register(&mockProvider{name: "dup"})
+	Register("dup", func(baseDir string) Provider {
+		return &skillMDProvider{providerName: "dup", baseDir: "/tmp/dup"}
+	})
 
 	defer func() {
 		r := recover()
@@ -51,7 +43,9 @@ func TestRegister_Duplicate_Panics(t *testing.T) {
 		}
 	}()
 
-	Register(&mockProvider{name: "dup"})
+	Register("dup", func(baseDir string) Provider {
+		return &skillMDProvider{providerName: "dup", baseDir: "/tmp/dup"}
+	})
 }
 
 func TestList_Empty(t *testing.T) {
@@ -66,9 +60,12 @@ func TestList_Empty(t *testing.T) {
 func TestList_Sorted(t *testing.T) {
 	resetRegistry()
 
-	Register(&mockProvider{name: "zebra"})
-	Register(&mockProvider{name: "alpha"})
-	Register(&mockProvider{name: "middle"})
+	for _, name := range []string{"zebra", "alpha", "middle"} {
+		n := name
+		Register(n, func(baseDir string) Provider {
+			return &skillMDProvider{providerName: n, baseDir: "/tmp/" + n}
+		})
+	}
 
 	names := List()
 	expected := []string{"alpha", "middle", "zebra"}
@@ -80,6 +77,35 @@ func TestList_Sorted(t *testing.T) {
 		if name != expected[i] {
 			t.Errorf("List()[%d] = %q, want %q", i, name, expected[i])
 		}
+	}
+}
+
+func TestNew_WithBaseDir(t *testing.T) {
+	resetRegistry()
+
+	Register("test", func(baseDir string) Provider {
+		if baseDir == "" {
+			baseDir = "/default/path"
+		}
+		return &skillMDProvider{providerName: "test", baseDir: baseDir}
+	})
+
+	// Default dir
+	p, err := Get("test")
+	if err != nil {
+		t.Fatalf("Get returned error: %v", err)
+	}
+	if p.SkillDir() != "/default/path" {
+		t.Errorf("SkillDir() = %q, want /default/path", p.SkillDir())
+	}
+
+	// Custom dir
+	p2, err := New("test", "/custom/path")
+	if err != nil {
+		t.Fatalf("New returned error: %v", err)
+	}
+	if p2.SkillDir() != "/custom/path" {
+		t.Errorf("SkillDir() = %q, want /custom/path", p2.SkillDir())
 	}
 }
 
@@ -101,46 +127,5 @@ func TestSkillStatus_String(t *testing.T) {
 				t.Errorf("SkillStatus(%d).String() = %q, want %q", tt.status, got, tt.want)
 			}
 		})
-	}
-}
-
-func TestMockProvider_Implements_Interface(t *testing.T) {
-	resetRegistry()
-
-	// Verify mockProvider satisfies the Provider interface at compile time.
-	var _ Provider = &mockProvider{}
-
-	p := &mockProvider{name: "integration-test"}
-	Register(p)
-
-	got, err := Get("integration-test")
-	if err != nil {
-		t.Fatalf("Get returned error: %v", err)
-	}
-
-	skills, err := got.ListSkills()
-	if err != nil {
-		t.Fatalf("ListSkills returned error: %v", err)
-	}
-	if skills != nil {
-		t.Errorf("expected nil skills from mock, got %v", skills)
-	}
-
-	skill, err := got.ReadSkill("anything")
-	if err != nil {
-		t.Fatalf("ReadSkill returned error: %v", err)
-	}
-	if skill != nil {
-		t.Errorf("expected nil skill from mock, got %v", skill)
-	}
-
-	err = got.WriteSkill(Skill{Name: "test"})
-	if err != nil {
-		t.Fatalf("WriteSkill returned error: %v", err)
-	}
-
-	dir := got.SkillDir()
-	if dir != "/tmp/integration-test" {
-		t.Errorf("SkillDir() = %q, want %q", dir, "/tmp/integration-test")
 	}
 }

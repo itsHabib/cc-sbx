@@ -1,26 +1,13 @@
 package provider
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-// writeFactorySkill creates a SKILL.md file inside <dir>/<name>/SKILL.md.
-func writeFactorySkill(t *testing.T, dir, name, content string) {
-	t.Helper()
-	skillDir := filepath.Join(dir, name)
-	if err := os.MkdirAll(skillDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestFactoryName(t *testing.T) {
-	p := NewFactoryProvider(WithFactoryBaseDir(t.TempDir()))
+	p := newTestProvider("factory", t.TempDir())
 	if got := p.Name(); got != "factory" {
 		t.Errorf("Name() = %q, want %q", got, "factory")
 	}
@@ -28,7 +15,7 @@ func TestFactoryName(t *testing.T) {
 
 func TestFactorySkillDir(t *testing.T) {
 	dir := t.TempDir()
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	if got := p.SkillDir(); got != dir {
 		t.Errorf("SkillDir() = %q, want %q", got, dir)
 	}
@@ -37,9 +24,9 @@ func TestFactorySkillDir(t *testing.T) {
 func TestFactoryReadSkill_WithFrontmatter(t *testing.T) {
 	dir := t.TempDir()
 	content := "---\nname: worker\ndescription: General-purpose worker droid\n---\n# Worker Droid\n\nMarkdown prompt body here.\n"
-	writeFactorySkill(t, dir, "worker", content)
+	writeTestSkill(t, dir, "worker", content)
 
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	skill, err := p.ReadSkill("worker")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -50,43 +37,21 @@ func TestFactoryReadSkill_WithFrontmatter(t *testing.T) {
 	if skill.Description != "General-purpose worker droid" {
 		t.Errorf("Description = %q, want %q", skill.Description, "General-purpose worker droid")
 	}
-	wantBody := "# Worker Droid\n\nMarkdown prompt body here.\n"
-	if skill.Content != wantBody {
-		t.Errorf("Content = %q, want %q", skill.Content, wantBody)
+	// Content should be the full raw file content (including frontmatter).
+	if skill.Content != content {
+		t.Errorf("Content = %q, want %q", skill.Content, content)
 	}
 	if skill.SourcePath == "" {
 		t.Error("SourcePath should not be empty after ReadSkill")
 	}
 }
 
-func TestFactoryReadSkill_WithFrontmatterAndModel(t *testing.T) {
-	dir := t.TempDir()
-	content := "---\nname: reviewer\ndescription: Code review droid\nmodel: inherit\n---\nReview code carefully.\n"
-	writeFactorySkill(t, dir, "reviewer", content)
-
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
-	skill, err := p.ReadSkill("reviewer")
-	if err != nil {
-		t.Fatalf("ReadSkill() error: %v", err)
-	}
-	if skill.Name != "reviewer" {
-		t.Errorf("Name = %q, want %q", skill.Name, "reviewer")
-	}
-	if skill.Description != "Code review droid" {
-		t.Errorf("Description = %q, want %q", skill.Description, "Code review droid")
-	}
-	wantBody := "Review code carefully.\n"
-	if skill.Content != wantBody {
-		t.Errorf("Content = %q, want %q", skill.Content, wantBody)
-	}
-}
-
 func TestFactoryReadSkill_NoFrontmatter(t *testing.T) {
 	dir := t.TempDir()
 	content := "# Simple Droid\n\nJust a plain markdown file.\n"
-	writeFactorySkill(t, dir, "simple", content)
+	writeTestSkill(t, dir, "simple", content)
 
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	skill, err := p.ReadSkill("simple")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -102,29 +67,11 @@ func TestFactoryReadSkill_NoFrontmatter(t *testing.T) {
 	}
 }
 
-func TestFactoryReadSkill_NoFrontmatterNoDescription(t *testing.T) {
-	dir := t.TempDir()
-	content := "Just plain text with no heading.\n"
-	writeFactorySkill(t, dir, "plain", content)
-
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
-	skill, err := p.ReadSkill("plain")
-	if err != nil {
-		t.Fatalf("ReadSkill() error: %v", err)
-	}
-	if skill.Name != "plain" {
-		t.Errorf("Name = %q, want %q", skill.Name, "plain")
-	}
-	if skill.Description != "" {
-		t.Errorf("Description = %q, want empty", skill.Description)
-	}
-}
-
 func TestFactoryReadSkill_EmptyFile(t *testing.T) {
 	dir := t.TempDir()
-	writeFactorySkill(t, dir, "empty", "")
+	writeTestSkill(t, dir, "empty", "")
 
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	skill, err := p.ReadSkill("empty")
 	if err != nil {
 		t.Fatalf("ReadSkill() error: %v", err)
@@ -140,60 +87,21 @@ func TestFactoryReadSkill_EmptyFile(t *testing.T) {
 	}
 }
 
-func TestFactoryReadSkill_FrontmatterOnly(t *testing.T) {
-	dir := t.TempDir()
-	content := "---\nname: stub\ndescription: A stub skill\n---\n"
-	writeFactorySkill(t, dir, "stub", content)
-
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
-	skill, err := p.ReadSkill("stub")
-	if err != nil {
-		t.Fatalf("ReadSkill() error: %v", err)
-	}
-	if skill.Name != "stub" {
-		t.Errorf("Name = %q, want %q", skill.Name, "stub")
-	}
-	if skill.Description != "A stub skill" {
-		t.Errorf("Description = %q, want %q", skill.Description, "A stub skill")
-	}
-	if skill.Content != "" {
-		t.Errorf("Content = %q, want empty", skill.Content)
-	}
-}
-
 func TestFactoryReadSkill_NonExistent(t *testing.T) {
 	dir := t.TempDir()
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	_, err := p.ReadSkill("nonexistent")
 	if err == nil {
 		t.Error("ReadSkill() expected error for nonexistent skill, got nil")
-	}
-	if !errors.Is(err, os.ErrNotExist) {
-		t.Errorf("expected error wrapping os.ErrNotExist, got: %v", err)
-	}
-}
-
-func TestFactoryReadSkill_FrontmatterNameOverridesDir(t *testing.T) {
-	dir := t.TempDir()
-	content := "---\nname: custom-name\ndescription: Overridden name\n---\nBody.\n"
-	writeFactorySkill(t, dir, "dirname", content)
-
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
-	skill, err := p.ReadSkill("dirname")
-	if err != nil {
-		t.Fatalf("ReadSkill() error: %v", err)
-	}
-	if skill.Name != "custom-name" {
-		t.Errorf("Name = %q, want %q (frontmatter overrides dir)", skill.Name, "custom-name")
 	}
 }
 
 func TestFactoryListSkills_Multiple(t *testing.T) {
 	dir := t.TempDir()
-	writeFactorySkill(t, dir, "alpha", "---\nname: alpha\ndescription: Alpha\n---\nAlpha body\n")
-	writeFactorySkill(t, dir, "beta", "# Beta\n\nBeta body\n")
+	writeTestSkill(t, dir, "alpha", "---\nname: alpha\ndescription: Alpha\n---\nAlpha body\n")
+	writeTestSkill(t, dir, "beta", "# Beta\n\nBeta body\n")
 
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	skills, err := p.ListSkills()
 	if err != nil {
 		t.Fatalf("ListSkills() error: %v", err)
@@ -215,7 +123,7 @@ func TestFactoryListSkills_Multiple(t *testing.T) {
 
 func TestFactoryListSkills_Empty(t *testing.T) {
 	dir := t.TempDir()
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	skills, err := p.ListSkills()
 	if err != nil {
 		t.Fatalf("ListSkills() error: %v", err)
@@ -227,7 +135,7 @@ func TestFactoryListSkills_Empty(t *testing.T) {
 
 func TestFactoryListSkills_NonExistentDir(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nonexistent")
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	_, err := p.ListSkills()
 	if err == nil {
 		t.Error("ListSkills() expected error for nonexistent dir, got nil")
@@ -236,7 +144,7 @@ func TestFactoryListSkills_NonExistentDir(t *testing.T) {
 
 func TestFactoryListSkills_SkipsNonSkillDirs(t *testing.T) {
 	dir := t.TempDir()
-	writeFactorySkill(t, dir, "real", "---\nname: real\ndescription: Real skill\n---\nBody\n")
+	writeTestSkill(t, dir, "real", "---\nname: real\ndescription: Real skill\n---\nBody\n")
 	// Create a directory without SKILL.md
 	if err := os.MkdirAll(filepath.Join(dir, "not-a-skill"), 0755); err != nil {
 		t.Fatal(err)
@@ -246,7 +154,7 @@ func TestFactoryListSkills_SkipsNonSkillDirs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 	skills, err := p.ListSkills()
 	if err != nil {
 		t.Fatalf("ListSkills() error: %v", err)
@@ -261,12 +169,12 @@ func TestFactoryListSkills_SkipsNonSkillDirs(t *testing.T) {
 
 func TestFactoryWriteSkill_Basic(t *testing.T) {
 	dir := t.TempDir()
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 
+	content := "---\nname: worker\ndescription: General-purpose worker\n---\n# Worker\n\nDo the work.\n"
 	skill := Skill{
-		Name:        "worker",
-		Description: "General-purpose worker",
-		Content:     "# Worker\n\nDo the work.\n",
+		Name:    "worker",
+		Content: content,
 	}
 	if err := p.WriteSkill(skill); err != nil {
 		t.Fatalf("WriteSkill() error: %v", err)
@@ -276,39 +184,18 @@ func TestFactoryWriteSkill_Basic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile() error: %v", err)
 	}
-	got := string(data)
-	want := "---\nname: worker\ndescription: General-purpose worker\n---\n# Worker\n\nDo the work.\n"
-	if got != want {
-		t.Errorf("file content =\n%s\nwant:\n%s", got, want)
-	}
-}
-
-func TestFactoryWriteSkill_CreatesDir(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "new", "nested")
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
-
-	skill := Skill{
-		Name:        "test",
-		Description: "Test skill",
-		Content:     "Hello\n",
-	}
-	if err := p.WriteSkill(skill); err != nil {
-		t.Fatalf("WriteSkill() error: %v", err)
-	}
-
-	if _, err := os.Stat(filepath.Join(dir, "test", "SKILL.md")); err != nil {
-		t.Errorf("expected SKILL.md to exist: %v", err)
+	if string(data) != content {
+		t.Errorf("file content =\n%s\nwant:\n%s", string(data), content)
 	}
 }
 
 func TestFactoryWriteSkill_RoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
+	p := newTestProvider("factory", dir)
 
 	original := Skill{
-		Name:        "roundtrip",
-		Description: "Round trip test",
-		Content:     "# Round Trip\n\nContent goes here.\n",
+		Name:    "roundtrip",
+		Content: "---\nname: roundtrip\ndescription: Round trip test\n---\n# Round Trip\n\nContent goes here.\n",
 	}
 	if err := p.WriteSkill(original); err != nil {
 		t.Fatalf("WriteSkill() error: %v", err)
@@ -322,54 +209,13 @@ func TestFactoryWriteSkill_RoundTrip(t *testing.T) {
 	if got.Name != original.Name {
 		t.Errorf("Name = %q, want %q", got.Name, original.Name)
 	}
-	if got.Description != original.Description {
-		t.Errorf("Description = %q, want %q", got.Description, original.Description)
+	if got.Description != "Round trip test" {
+		t.Errorf("Description = %q, want %q", got.Description, "Round trip test")
 	}
 	if got.Content != original.Content {
 		t.Errorf("Content = %q, want %q", got.Content, original.Content)
 	}
 	if got.SourcePath == "" {
 		t.Error("SourcePath should not be empty after ReadSkill")
-	}
-}
-
-func TestFactoryWriteSkill_RoundTrip_NoDescription(t *testing.T) {
-	dir := t.TempDir()
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
-
-	original := Skill{
-		Name:        "nodesc",
-		Description: "",
-		Content:     "Just content, no description.\n",
-	}
-	if err := p.WriteSkill(original); err != nil {
-		t.Fatalf("WriteSkill() error: %v", err)
-	}
-
-	got, err := p.ReadSkill("nodesc")
-	if err != nil {
-		t.Fatalf("ReadSkill() error: %v", err)
-	}
-
-	if got.Name != original.Name {
-		t.Errorf("Name = %q, want %q", got.Name, original.Name)
-	}
-	if got.Description != original.Description {
-		t.Errorf("Description = %q, want %q", got.Description, original.Description)
-	}
-	if got.Content != original.Content {
-		t.Errorf("Content = %q, want %q", got.Content, original.Content)
-	}
-}
-
-func TestFactoryReadSkill_MalformedYAML(t *testing.T) {
-	dir := t.TempDir()
-	content := "---\nname: [invalid yaml\n---\nBody\n"
-	writeFactorySkill(t, dir, "bad", content)
-
-	p := NewFactoryProvider(WithFactoryBaseDir(dir))
-	_, err := p.ReadSkill("bad")
-	if err == nil {
-		t.Error("ReadSkill() expected error for malformed YAML, got nil")
 	}
 }
