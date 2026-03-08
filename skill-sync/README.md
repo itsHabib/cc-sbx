@@ -4,32 +4,30 @@ Sync AI assistant skills across providers -- write once, use everywhere.
 
 ## The Problem
 
-Every AI coding assistant has its own format for custom skills: Claude Code uses Markdown files, Copilot uses `.prompt.md`, Gemini CLI uses TOML, and Factory uses Markdown with YAML frontmatter. If you use more than one tool, you end up maintaining the same skills in multiple places, in multiple formats. When one copy drifts, you have no way to know until something breaks.
+Every AI coding assistant stores custom skills in a different directory: Claude Code uses `~/.claude/skills/`, Copilot uses `~/.copilot/skills/`, Gemini CLI uses `~/.gemini/skills/`, and Factory uses `~/.factory/skills/`. They all use the same `SKILL.md` format (the [Agent Skills open standard](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)), but if you use more than one tool, you end up maintaining the same skills in multiple places. When one copy drifts, you have no way to know until something breaks.
 
-skill-sync fixes this. Declare one provider as your source of truth, and skill-sync translates and copies your skills to every target you configure. Then use `status` to catch drift before it becomes a problem.
+skill-sync fixes this. Declare one provider as your source of truth, and skill-sync copies your skills to every target you configure. Then use `status` to catch drift before it becomes a problem.
 
 ## Quick Start
 
 ```bash
-# Build from source
-git clone https://github.com/user/skill-sync.git
-cd skill-sync
-go build -o skill-sync .
+# Install
+go install github.com/user/skill-sync@latest
 
 # Create a config file
-./skill-sync init --source claude --targets copilot,gemini,factory
+skill-sync init --source claude --targets copilot,gemini,factory
 
 # Sync all skills
-./skill-sync sync
+skill-sync sync
 
 # Check for drift
-./skill-sync status
+skill-sync status
 ```
 
 Or skip the config file entirely:
 
 ```bash
-./skill-sync sync --source claude --targets copilot,gemini
+skill-sync sync --source claude --targets copilot,gemini
 ```
 
 ## Usage
@@ -48,7 +46,7 @@ Created .skill-sync.yaml (source: claude, targets: [copilot gemini factory])
 
 ### `skill-sync sync`
 
-Reads skills from your source provider, translates the format, and writes them to all targets.
+Reads skills from your source provider and writes them to all targets.
 
 ```bash
 skill-sync sync
@@ -72,19 +70,20 @@ Preview what would happen without writing anything:
 skill-sync sync --dry-run
 ```
 
-```
-SKILL    TARGET   STATUS
-deploy   copilot  would sync
-deploy   gemini   would sync
-deploy   factory  would sync
-
-Would sync: 3 skill(s) to 3 target(s)
-```
-
 Sync only specific skills:
 
 ```bash
 skill-sync sync --skill deploy --skill review
+```
+
+Override directories:
+
+```bash
+# Use a custom source directory
+skill-sync sync --source-dir /path/to/my/skills
+
+# Use a custom target directory (single target only)
+skill-sync sync --source claude --targets copilot --target-dir /path/to/copilot/skills
 ```
 
 ### `skill-sync status`
@@ -136,52 +135,29 @@ skill-sync diff copilot
  Return matching lines with context.
 ```
 
-```bash
-skill-sync diff         # diffs for all targets
-```
-
-## Architecture
-
-```mermaid
-flowchart LR
-    Source["Source Provider\n(e.g., Claude Code)"]
-    IR["Skill\n---\nName\nDescription\nContent\nArguments"]
-    T1["Copilot\n.prompt.md"]
-    T2["Gemini CLI\n.toml"]
-    T3["Factory\nSKILL.md"]
-
-    Source -->|"ListSkills()\nReadSkill()"| IR
-    IR -->|"WriteSkill()"| T1
-    IR -->|"WriteSkill()"| T2
-    IR -->|"WriteSkill()"| T3
-
-    Source2["Source Provider"] -.->|"ReadSkill()"| Diff["DiffEngine"]
-    Target2["Target Provider"] -.->|"ReadSkill()"| Diff
-    Diff -.->|"compare normalized content"| Report["DriftReport\n---\nin-sync / modified\nmissing / extra"]
-```
-
-The Skill struct is the intermediate representation. Every provider reads into it and writes from it. This is how a Markdown skill from Claude becomes a TOML file for Gemini -- the Skill model carries the content across the format boundary.
-
-The DiffEngine reads skills from both source and target, normalizes whitespace, and compares. It produces a DriftReport for `status` and unified diffs for `diff`.
-
 ## Supported Providers
 
-| Provider | Skill Location | Format | File Extension |
-|----------|---------------|--------|----------------|
-| Claude Code | `~/.claude/skills/<name>/` | Markdown | `SKILL.md` |
-| GitHub Copilot | `.github/prompts/` | Markdown | `.prompt.md` |
-| Gemini CLI | `~/.gemini/commands/` | TOML | `.toml` |
-| Factory AI Droid | `.factory/skills/<name>/` | Markdown + YAML frontmatter | `SKILL.md` |
+All providers use the [Agent Skills open standard](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) -- `SKILL.md` files with optional YAML frontmatter, one directory per skill.
 
-Claude and Gemini use user-level directories (under `$HOME`). Copilot and Factory use project-level directories (relative to the working directory).
+| Provider | Default Skill Location | Aliases / Compat |
+|----------|----------------------|------------------|
+| Claude Code | `~/.claude/skills/<name>/SKILL.md` | — |
+| GitHub Copilot | `~/.copilot/skills/<name>/SKILL.md` | Also reads `~/.claude/skills/` |
+| Gemini CLI | `~/.gemini/skills/<name>/SKILL.md` | Also reads `~/.agents/skills/` |
+| Factory AI | `~/.factory/skills/<name>/SKILL.md` | Also reads `.agent/skills/` |
+
+All defaults are user-level (`$HOME`) directories, so skills follow you across projects.
 
 ## Configuration
 
-The `.skill-sync.yaml` file declares your source provider, target providers, and an optional skill filter.
+The `.skill-sync.yaml` file declares your source provider, target providers, and optional directory overrides.
 
 ```yaml
 # Source of truth -- skills are read from here
 source: claude
+
+# Optional: override the source provider's default directory
+# source_dir: /custom/path/to/claude/skills
 
 # Target providers -- skills are synced to all of these
 targets:
@@ -189,9 +165,22 @@ targets:
     - gemini
     - factory
 
+# Optional: override target directories (per-provider)
+# target_dirs:
+#   copilot: /custom/path/to/copilot/skills
+#   gemini: /custom/path/to/gemini/skills
+
 # Optional: sync only these skills (empty = sync all)
 skills: []
 ```
+
+### Directory Override Priority
+
+1. CLI flag (`--source-dir` / `--target-dir`) -- highest priority
+2. Config file (`source_dir` / `target_dirs`)
+3. Provider default (`~/.<provider>/skills/`)
+
+The `--target-dir` flag can only be used when there is a single target. For multiple targets, use `target_dirs` in the config file.
 
 All commands accept `--config` to use a different config file path:
 
@@ -207,13 +196,11 @@ skill-sync status --source claude --targets copilot,gemini
 
 ## How It Works
 
-**sync** reads every skill from the source provider using `ListSkills()`, normalizes each into a `Skill` struct (name, description, content, arguments), then calls `WriteSkill()` on each target provider. Each provider handles its own format: Copilot writes `.prompt.md`, Gemini encodes a TOML file with `description` and `prompt` fields, Factory produces `SKILL.md` with YAML frontmatter.
+Since all four providers now use the same `SKILL.md` format, **sync is a straight copy** -- no format translation needed. skill-sync reads each `<name>/SKILL.md` directory from the source and writes it verbatim to each target's skill directory.
 
 **status** reads skills from both source and all targets, normalizes trailing whitespace, and compares content. It reports each skill as in-sync, modified, missing, or extra. If any drift is detected, it exits with code 1.
 
 **diff** does the same comparison as `status` but produces unified diffs (like `git diff`) for modified skills instead of a status table.
-
-Argument placeholders (`$ARGUMENTS`, `{{args}}`, etc.) are passed through verbatim. There is no cross-provider argument translation.
 
 Sync is additive -- it writes source skills to targets but does not delete extra skills found in targets. The `status` command reports extras so you can handle them manually.
 
@@ -260,6 +247,9 @@ go build -o skill-sync .
 # Run all tests
 go test ./...
 
+# Run smoke tests
+go test -tags smoke ./tests/
+
 # Lint
 go vet ./...
 ```
@@ -270,14 +260,12 @@ The codebase is structured as:
 cmd/           CLI commands (cobra)
 internal/
   config/      Config loading and validation
-  provider/    Provider interface + 4 implementations
+  provider/    Provider interface + shared skillMDProvider
   sync/        Sync engine + diff/drift engine
 tests/         Smoke tests
 ```
 
-When adding a new provider, implement the `provider.Provider` interface and call `provider.Register()` in an `init()` function. Add a row to the Supported Providers table above.
-
-When changing CLI output format or flags, update the corresponding examples in this README.
+When adding a new provider, register a `ProviderFactory` in an `init()` function -- it takes a `baseDir` string and returns a `Provider`. See any of the existing provider files for a one-liner example.
 
 ## License
 
