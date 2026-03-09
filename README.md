@@ -2,6 +2,21 @@
 
 A sandbox for exploring [Claude Code](https://claude.ai/code) — with a focus on subagents and multi-agent teams. Each sub-project explores prompting patterns, team structures, and workflows for using Claude Code agents to design and build non-trivial systems from scratch.
 
+## Custom Skills
+
+This repo includes [Claude Code skills](https://docs.anthropic.com/en/docs/claude-code) in `.claude/skills/` that power the team-based workflows used across all projects. They're automatically available when you open the repo in Claude Code.
+
+| Skill | Description |
+|-------|-------------|
+| `/team-code-project` | Scaffold a complete project — generates `PROJECT.md` and phase kickoff YAMLs from a few questions. |
+| `/init-team-project` | Interactively define a new project from scratch into a `PROJECT.md` source-of-truth doc. |
+| `/new-team-phase` | Scaffold a new phase config YAML (teammates, roles, focus areas, dependencies). |
+| `/team-kickoff` | Spawn a multi-agent planning team from a phase config — each teammate writes a plan doc in parallel. |
+| `/team-execute` | Re-spawn teammates to write full deliverables from their approved plan docs. |
+| `/team-code-execute` | Like `/team-execute` but for code — teammates write code and self-verify with build/test commands. |
+| `/team-to-orchestra` | Convert `PROJECT.md` + kickoff YAMLs into an `orchestra.yaml` for the [agent-orchestra](./agent-orchestra) CLI. |
+| `/hackathon-init` | Scaffold a complete agent hackathon — teams, phases, output directories, and judging criteria. |
+
 ## Table of Contents
 
 - [Projects](#projects)
