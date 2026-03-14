@@ -45,6 +45,9 @@ This repo includes [Claude Code skills](https://docs.anthropic.com/en/docs/claud
   - [skill-sync](#skill-sync)
     - [Agent Workflow](#agent-workflow-5)
     - [Commands](#commands)
+  - [babel-protocol](#babel-protocol)
+    - [Agent Workflow](#agent-workflow-6)
+    - [A/B Test](#ab-test)
 
 ---
 
@@ -342,4 +345,57 @@ Built using `/team-kickoff` and `/team-code-execute` across two phases with spec
 | `skill-sync sync` | Copy skills from source to all targets |
 | `skill-sync status` | Report drift across targets (exit 1 if drift detected) |
 | `skill-sync diff` | Show unified diffs for modified skills |
+
+---
+
+### babel-protocol
+
+An experiment where Claude Code agent teams invented their own language from scratch for agent-to-agent communication, then compressed it over 3 rounds until it hit the theoretical floor. The result: **88% message compression, 82% all-in savings, 100% task success**, learnable by a fresh agent in 15 minutes from a 104-token spec.
+
+The question: **can AI agents do better than English when talking to each other?** The answer: yes, dramatically.
+
+#### Agent Workflow
+
+Built using `/team-kickoff` and `/team-execute` across 7 phases with ~40 agent spawns. Each phase followed the standard plan → approve → execute loop. Phases 5-7 ran back-to-back with zero manual intervention (~45 minutes wall clock).
+
+| Phase | Focus | Result |
+|-------|-------|--------|
+| **1. Experiment Design** | Framework, 10 tasks, metrics definitions | Task library + evaluation criteria |
+| **2. Baseline** | English encoding of all 10 tasks | 1,676 tokens, 90% success rate |
+| **3. Language Genesis** | Agents invent Babel v1 from scratch | 88% message compression, but 2,611-token spec (net worse) |
+| **4. Compression Round 1** | Slash the spec | Spec 2,611 → 317 tokens. AICR crosses to net win |
+| **5. Compression Round 2** | Hyphenation trick | Spec 317 → 104 tokens. Free lunch |
+| **6. Compression Round 3** | Attempt further compression | Floor confirmed. vFinal = v3. STOP |
+| **7. Final Analysis** | Fresh agent test, evolution report | 10/10 encode, 10/10 decode, 0 divergences |
+
+#### A/B Test
+
+Ran the same multi-agent task (conference scheduling — 3 agents, 8 speakers, 4 rooms, 6 slots, 11 constraints) twice: once in English, once in Babel. Both produced the identical correct schedule.
+
+| Metric | English | Babel | Delta |
+|--------|---------|-------|-------|
+| Inter-agent payload | 2,886 words | 459 words | **-84%** |
+| Total API tokens | 30,518 | 29,324 | **-4%** |
+| Wall clock time | 118s | 98s | **-17%** |
+| Accuracy | 11/11 constraints | 11/11 constraints | Same |
+
+API-level savings are modest because inter-agent payloads are a fraction of total session tokens (system prompts, tool overhead, reasoning). In systems with many agents and handoffs, the savings compound.
+
+#### Plans / Docs
+
+```
+babel-protocol/
+  PROJECT.md                           # Project definition
+  docs/
+    experiment-design/content/         # Phase 1: framework, task library, metrics
+    baseline/content/                  # Phase 2: English baseline transcripts
+    language-genesis/content/          # Phase 3: v1 spec, architect, tester
+    compress-v1/content/               # Phase 4: v2 spec, round 1 encode/decode
+    compress-v2/content/               # Phase 5: v3 spec, round 2 encode/decode
+    compress-v3/content/               # Phase 6: vFinal spec, evolution summary
+    final-analysis/content/            # Phase 7: fresh agent, evolution, theory, report
+  test/                                # A/B test: Babel vs English
+    with-babel/                        # Agent outputs using Babel
+    without-babel/                     # Agent outputs using English
+```
 
