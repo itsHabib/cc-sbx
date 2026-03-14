@@ -19,3 +19,6 @@
 [submodule "skill-sync"]
 	path = skill-sync
 	url = git@github.com:itsHabib/skill-sync.git
+[submodule "babel-protocol"]
+	path = babel-protocol
+	url = git@github.com:itsHabib/babel-protocol.git
