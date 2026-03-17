@@ -22,3 +22,6 @@
 [submodule "babel-protocol"]
 	path = babel-protocol
 	url = git@github.com:itsHabib/babel-protocol.git
+[submodule "cortex"]
+	path = cortex
+	url = git@github.com:itsHabib/cortex.git
