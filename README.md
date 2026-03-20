@@ -38,9 +38,6 @@ This repo includes [Claude Code skills](https://docs.anthropic.com/en/docs/claud
     - [Plans / Docs](#plans--docs-3)
   - [agent-orchestra](#agent-orchestra)
     - [Architecture](#architecture)
-  - [cortex](#cortex)
-    - [Agent Workflow](#agent-workflow-4)
-    - [Phases](#phases-1)
   - [ingest](#ingest)
     - [Agent Workflow](#agent-workflow-4)
     - [Phases](#phases-1)
@@ -51,6 +48,9 @@ This repo includes [Claude Code skills](https://docs.anthropic.com/en/docs/claud
   - [babel-protocol](#babel-protocol)
     - [Agent Workflow](#agent-workflow-6)
     - [A/B Test](#ab-test)
+  - [cortex](#cortex)
+    - [Agent Workflow](#agent-workflow-7)
+    - [Phases](#phases-2)
 
 ---
 
@@ -286,53 +286,6 @@ orchestra.yaml  →  validate  →  DAG (Kahn's)  →  tier-by-tier execution
 
 ---
 
-### cortex
-
-Multi-agent orchestration system built on Elixir/OTP. Cortex manages teams of AI agents that collaborate on complex, multi-step objectives via `claude -p` processes. Successor to [agent-orchestra](#agent-orchestra) — replaces file-based messaging and manual failure handling with OTP supervision trees, GenServer-per-agent state, PubSub event streaming, and a real-time Phoenix LiveView dashboard.
-
-Supports two coordination modes: **DAG orchestration** for structured, dependency-aware tier-by-tier execution, and **gossip protocol** for emergent, decentralized knowledge sharing via CRDTs and vector clocks.
-
-#### Agent Workflow
-
-Built entirely using `/team-kickoff` and `/team-code-execute` across 11 phases, each with 3 specialized AI engineers. Every phase followed the same loop: plan in parallel → approve → code in parallel → self-verify (`mix compile --warnings-as-errors`, `mix test`, `mix credo --strict`) → human review between phases.
-
-#### Phases
-
-| Phase | Engineers | Focus |
-|-------|-----------|-------|
-| **1. OTP Foundation** | agent-server, spawner, config | Agent GenServer, `claude -p` process spawning, YAML config parsing |
-| **2. OTP Foundation QE** | unit-test, integration-test, property-test | Agent lifecycle, spawner edge cases, config validation |
-| **3. DAG Orchestration** | dag-engine, workspace, prompt-injector | Kahn's algorithm, tier execution, state flow, upstream result injection |
-| **4. DAG Orchestration QE** | stress-test, failure-cascade, concurrency | Stress tests, failure cascades, concurrent execution |
-| **5. LiveView Dashboard** | phoenix-setup, ecto-persistence, dag-viz | Phoenix app, Ecto + SQLite, real-time DAG visualization, 5 dashboard pages |
-| **6. LiveView Dashboard QE** | liveview-test, ecto-test, integration-test | LiveView tests, Ecto query tests, full-stack integration |
-| **7. Gossip Protocol** | crdt-store, gossip-engine, topology | CRDT knowledge stores, push-pull exchange, vector clocks, mesh/ring/random-k topologies |
-| **8. Gossip QE** | convergence-test, partition-test, bench | Convergence proofs, network partition handling, gossip benchmarks |
-| **9. Performance** | agent-bench, gossip-bench, dag-bench | Micro-benchmarks for agent, gossip, and DAG subsystems |
-| **10. SRE** | telemetry, prometheus, health | Structured telemetry events, Prometheus `/metrics` endpoint, health checks |
-| **11. Polish** | docs, examples, cleanup | README, example configs, code cleanup, Credo strict compliance |
-
-#### Plans / Docs
-
-```
-cortex/
-  PROJECT.md                          # source of truth
-  docs/
-    01-otp-foundation/                # Phase 1 plans
-    02-otp-foundation-qe/             # Phase 2 plans
-    03-dag-orchestration/             # Phase 3 plans
-    04-dag-orchestration-qe/          # Phase 4 plans
-    05-liveview-dashboard/            # Phase 5 plans
-    06-liveview-dashboard-qe/         # Phase 6 plans
-    07-gossip-advanced/               # Phase 7 plans
-    08-gossip-advanced-qe/            # Phase 8 plans
-    09-performance/                   # Phase 9 plans
-    10-sre/                           # Phase 10 plans
-    11-polish/                        # Phase 11 plans
-```
-
----
-
 ### ingest
 
 A multi-tenant, Kafka-backed distributed ingestion and query engine in Go. Uses Kafka as the durability layer instead of a traditional Write-Ahead Log (WAL), making ingesters completely stateless. Built from scratch to deeply understand distributed ingestion design — stateless ingesters, consistent hashing, backpressure propagation, at-least-once delivery guarantees, and time-series query execution.
@@ -447,5 +400,52 @@ babel-protocol/
   test/                                # A/B test: Babel vs English
     with-babel/                        # Agent outputs using Babel
     without-babel/                     # Agent outputs using English
+```
+
+---
+
+### cortex
+
+Multi-agent orchestration system built on Elixir/OTP. Cortex manages teams of AI agents that collaborate on complex, multi-step objectives via `claude -p` processes. Successor to [agent-orchestra](#agent-orchestra) — replaces file-based messaging and manual failure handling with OTP supervision trees, GenServer-per-agent state, PubSub event streaming, and a real-time Phoenix LiveView dashboard.
+
+Supports two coordination modes: **DAG orchestration** for structured, dependency-aware tier-by-tier execution, and **gossip protocol** for emergent, decentralized knowledge sharing via CRDTs and vector clocks.
+
+#### Agent Workflow
+
+Built entirely using `/team-kickoff` and `/team-code-execute` across 11 phases, each with 3 specialized AI engineers. Every phase followed the same loop: plan in parallel → approve → code in parallel → self-verify (`mix compile --warnings-as-errors`, `mix test`, `mix credo --strict`) → human review between phases.
+
+#### Phases
+
+| Phase | Engineers | Focus |
+|-------|-----------|-------|
+| **1. OTP Foundation** | agent-server, spawner, config | Agent GenServer, `claude -p` process spawning, YAML config parsing |
+| **2. OTP Foundation QE** | unit-test, integration-test, property-test | Agent lifecycle, spawner edge cases, config validation |
+| **3. DAG Orchestration** | dag-engine, workspace, prompt-injector | Kahn's algorithm, tier execution, state flow, upstream result injection |
+| **4. DAG Orchestration QE** | stress-test, failure-cascade, concurrency | Stress tests, failure cascades, concurrent execution |
+| **5. LiveView Dashboard** | phoenix-setup, ecto-persistence, dag-viz | Phoenix app, Ecto + SQLite, real-time DAG visualization, 5 dashboard pages |
+| **6. LiveView Dashboard QE** | liveview-test, ecto-test, integration-test | LiveView tests, Ecto query tests, full-stack integration |
+| **7. Gossip Protocol** | crdt-store, gossip-engine, topology | CRDT knowledge stores, push-pull exchange, vector clocks, mesh/ring/random-k topologies |
+| **8. Gossip QE** | convergence-test, partition-test, bench | Convergence proofs, network partition handling, gossip benchmarks |
+| **9. Performance** | agent-bench, gossip-bench, dag-bench | Micro-benchmarks for agent, gossip, and DAG subsystems |
+| **10. SRE** | telemetry, prometheus, health | Structured telemetry events, Prometheus `/metrics` endpoint, health checks |
+| **11. Polish** | docs, examples, cleanup | README, example configs, code cleanup, Credo strict compliance |
+
+#### Plans / Docs
+
+```
+cortex/
+  PROJECT.md                          # source of truth
+  docs/
+    01-otp-foundation/                # Phase 1 plans
+    02-otp-foundation-qe/             # Phase 2 plans
+    03-dag-orchestration/             # Phase 3 plans
+    04-dag-orchestration-qe/          # Phase 4 plans
+    05-liveview-dashboard/            # Phase 5 plans
+    06-liveview-dashboard-qe/         # Phase 6 plans
+    07-gossip-advanced/               # Phase 7 plans
+    08-gossip-advanced-qe/            # Phase 8 plans
+    09-performance/                   # Phase 9 plans
+    10-sre/                           # Phase 10 plans
+    11-polish/                        # Phase 11 plans
 ```
 
