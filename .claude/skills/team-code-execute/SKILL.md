@@ -186,3 +186,20 @@ Do not summarize until every teammate has sent a completion message. Then:
    by keeping the real implementation and removing the stub.
 5. Ask the user: "All code is written. Would you like me to do a final integration check and resolve any stub conflicts?"
 6. When the session is complete, shut down teammates with `SendMessage` (type: `shutdown_request`) and call `TeamDelete` to clean up.
+
+---
+
+## Step 6 — Update project state (if PROJECT.state.yaml exists)
+
+After all teammates have completed, tests pass, and the phase is done, check if `PROJECT.state.yaml` exists in the project root. If it does:
+
+1. Find the phase entry whose `config` path matches the kickoff YAML you just ran (`$ARGUMENTS`).
+2. Set that phase's `status` to `done`.
+3. Set `completed:` to today's date.
+4. Set `commit:` to the short SHA of the commit (if one was created).
+5. Check if any phases in the same track have `depends_on` that includes this phase. If all their dependencies are now `done`, update their status from `pending` to `next`.
+6. Update `updated:` to today's date.
+
+If the state file doesn't exist, skip this step — it's optional.
+
+This keeps the state file current so `/where-are-we` can report accurate progress.

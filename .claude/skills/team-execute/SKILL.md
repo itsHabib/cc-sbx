@@ -170,3 +170,19 @@ Do not summarize until every teammate has sent a completion message. Then:
    - Suggested reading order for the user
 3. Ask the user: "All deliverables are written. Would you like me to do a cross-domain consistency review?"
 4. When the session is complete, shut down teammates with `SendMessage` (type: `shutdown_request`) and call `TeamDelete` to clean up.
+
+---
+
+## Step 6 — Update project state (if PROJECT.state.yaml exists)
+
+After all teammates have completed and deliverables are written, check if `PROJECT.state.yaml` exists in the project root. If it does:
+
+1. Find the phase entry whose `config` path matches the kickoff YAML you just ran (`$ARGUMENTS`).
+2. Set that phase's `status` to `done`.
+3. Set `completed:` to today's date.
+4. Check if any phases in the same track have `depends_on` that includes this phase. If all their dependencies are now `done`, update their status from `pending` to `next`.
+5. Update `updated:` to today's date.
+
+If the state file doesn't exist, skip this step — it's optional.
+
+This keeps the state file current so `/where-are-we` can report accurate progress.

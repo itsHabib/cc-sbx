@@ -167,3 +167,17 @@ Do not synthesize or summarize until every teammate has sent you a completion me
    - Suggested approval order (which plan to approve and start first)
 3. Ask the user: "Which plan would you like to approve first?"
 4. When the session is complete, shut down teammates with `SendMessage` (type: `shutdown_request`) and call `TeamDelete` to clean up.
+
+---
+
+## Step 6 — Update project state (if PROJECT.state.yaml exists)
+
+After all teammates have completed and the kickoff is done, check if `PROJECT.state.yaml` exists in the project root. If it does:
+
+1. Find the phase entry whose `config` path matches the kickoff YAML you just ran (`$ARGUMENTS`).
+2. Set that phase's `status` to `in_progress` (plans written, awaiting approval + execution).
+3. Update `updated:` to today's date.
+
+If the state file doesn't exist, skip this step — it's optional.
+
+This keeps the state file current so `/where-are-we` can report accurate progress.
