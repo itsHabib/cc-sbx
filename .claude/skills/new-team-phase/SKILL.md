@@ -59,7 +59,37 @@ Rules for paths:
 
 Ask: "Should I save this to `<suggested-path>`?" — suggest `docs/<phase-slug>/kickoff.yaml` as the default location.
 
-If yes, write the file. Then print:
+If yes, write the file. Then proceed to Step 4.
+
+## Step 4 — Create or update PROJECT.state.yaml
+
+After saving the kickoff YAML, create or update `PROJECT.state.yaml` at the project root so `/where-are-we` can track this phase.
+
+**If `PROJECT.state.yaml` does not exist**, create it:
+
+```yaml
+project: <project-name-slug>
+updated: <today's date, YYYY-MM-DD>
+
+tracks:
+  main:
+    description: "<inferred from PROJECT.md or system_context>"
+    project_doc: PROJECT.md
+    status: pending
+    phases:
+      <phase-slug>:
+        config: <path to kickoff.yaml just written>
+        status: next
+        depends_on: []
+        notes: "<phase goal>"
+```
+
+**If `PROJECT.state.yaml` already exists**, add the new phase to the appropriate track:
+- If it depends on existing phases, set `status: pending` and populate `depends_on`
+- If it has no dependencies and no other phase is `next`, set `status: next`
+- Update the `updated:` date
+
+Then print:
 
 ```
 Config saved. Run this to kick off the team:

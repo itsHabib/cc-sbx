@@ -109,9 +109,13 @@ PROJECT.md saved. Next steps:
 
   1. Run /new-team-phase to scaffold your first planning phase.
      (PROJECT.md will be pre-suggested as a dependency.)
+     This will also create PROJECT.state.yaml for progress tracking.
 
   2. Or if you already have a phase config:
        /team-kickoff path/to/config.yaml
+
+  3. Check progress any time with:
+       /where-are-we
 
 Tip: list PROJECT.md as the first dependency in every phase config
 so all teammates share the same project foundation.

@@ -74,6 +74,7 @@ Print a summary for user review:
 
 ### Files to generate
 - PROJECT.md
+- PROJECT.state.yaml
 - docs/<phase-1>/kickoff.yaml
 - docs/<phase-2>/kickoff.yaml
 ...
@@ -212,12 +213,46 @@ docs/<phase-slug>/plans/    # created empty, filled by /team-kickoff
 docs/<phase-slug>/content/  # created empty, filled by /team-execute
 ```
 
+### 4c. Generate PROJECT.state.yaml
+
+Write `PROJECT.state.yaml` at the project root. This file powers the `/where-are-we` skill for tracking progress across phases.
+
+```yaml
+project: <project-name-slug>
+updated: <today's date, YYYY-MM-DD>
+
+tracks:
+  main:
+    description: "<one-line project description>"
+    project_doc: PROJECT.md
+    status: pending
+    phases:
+      <phase-1-slug>:
+        config: docs/<phase-1-slug>/kickoff.yaml
+        status: next
+        depends_on: []
+        notes: "<phase 1 goal>"
+      <phase-2-slug>:
+        config: docs/<phase-2-slug>/kickoff.yaml
+        status: pending
+        depends_on: [<phase-1-slug>]
+        notes: "<phase 2 goal>"
+      # ... repeat for all phases
+```
+
+Rules:
+- The first phase (no dependencies) gets `status: next`
+- All other phases get `status: pending`
+- `depends_on` mirrors the dependency chain from the kickoff YAMLs
+- Use a single `main` track unless the project has clearly independent work streams
+
 ## Step 5 — Print next steps
 
 ```
 All files generated:
 
   PROJECT.md
+  PROJECT.state.yaml
   docs/<phase-1>/kickoff.yaml
   docs/<phase-2>/kickoff.yaml
   ...
