@@ -33,38 +33,56 @@ If `$ARGUMENTS` names a specific track (e.g., "compute-spawning"), focus on that
 ## <Track Name> — <status emoji> <status>
 <description>
 
-| Phase | Status | Config | Notes |
-|-------|--------|--------|-------|
-| <phase> | <status> | <config path> | <notes> |
+| Phase | Plan | Execute | Config | Notes |
+|-------|------|---------|--------|-------|
+| <phase> | <plan_status> | <execute_status> | <config path> | <notes> |
 ...
 ```
 
+**Plan status** tracks `/team-kickoff` (writing plan docs):
+- not_started, in_progress, done
+
+**Execute status** tracks `/team-execute` or `/team-code-execute` (writing deliverables/code):
+- not_started, in_progress, done
+
+**Overall phase status** is derived:
+- `next` → plan not started, dependencies met (suggest `/team-kickoff`)
+- `planning` → plan in progress
+- `planned` → plans done, execute not started (suggest `/team-execute` or `/team-code-execute`)
+- `executing` → execute in progress
+- `done` → both plan and execute done
+- `pending` → dependencies not met
+- `blocked` → explicitly blocked
+
 Status emoji mapping:
 - done → checkmark
-- in_progress → arrow
-- next → star  (this is the actionable one)
+- planned → star (plans ready, execute is the next action)
+- next → circle-arrow (ready to kick off planning)
+- planning / executing → arrow (in progress)
 - pending → circle
 - blocked → x
 
 ### Then show the "What's Next" section:
 
-Collect ALL phases across ALL tracks where `status: next`. These are the actionable items — their dependencies are met and they're ready to start.
+Collect ALL phases across ALL tracks that are actionable. Two types of actionable:
+1. **Ready to plan** — `plan_status: not_started` and dependencies met
+2. **Ready to execute** — `plan_status: done` and `execute_status: not_started`
 
 ```
 ## What's Next
 
-Ready to start (all dependencies met):
+Ready to execute (plans approved):
+
+1. **<track> / <phase>** — <notes>
+   Execute: `/team-execute <config path>` or `/team-code-execute <config path>`
+
+Ready to plan (dependencies met):
 
 1. **<track> / <phase>** — <notes>
    Kick off: `/team-kickoff <config path>`
-
-2. **<track> / <phase>** — <notes>
-   This is a standalone task — build directly, no kickoff needed.
-   Plan: <plan path>
 ```
 
-For phases with a `config` field, suggest `/team-kickoff <config>`.
-For phases with a `plan` field (standalone), suggest reading the plan and building directly.
+Prioritize "ready to execute" over "ready to plan" — finish what's already planned first.
 
 ### Then show "Coming After":
 
@@ -103,10 +121,16 @@ tracks:
     phases:
       <phase-slug>:
         config: <path to kickoff.yaml>   # for team phases
-        plan: <path to plan doc>         # for standalone phases
-        status: done | in_progress | next | pending | blocked
-        completed: <date>                # when done
+        plan_status: not_started | in_progress | done
+        execute_status: not_started | in_progress | done
+        completed: <date>                # when both plan + execute are done
         commit: <short sha>              # when done
         depends_on: [<phase-slugs>]      # within same track
         notes: "<what this phase does>"
 ```
+
+**Status lifecycle per phase:**
+1. `plan_status: not_started` → `/team-kickoff` starts → `plan_status: in_progress`
+2. Plans written + approved → `plan_status: done`
+3. `/team-execute` or `/team-code-execute` starts → `execute_status: in_progress`
+4. Deliverables written → `execute_status: done`, set `completed` date

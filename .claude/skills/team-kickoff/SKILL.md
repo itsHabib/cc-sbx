@@ -175,7 +175,7 @@ Do not synthesize or summarize until every teammate has sent you a completion me
 After all teammates have completed and the kickoff is done, check if `PROJECT.state.yaml` exists in the project root. If it does:
 
 1. Find the phase entry whose `config` path matches the kickoff YAML you just ran (`$ARGUMENTS`).
-2. Set that phase's `status` to `in_progress` (plans written, awaiting approval + execution).
+2. Set that phase's `plan_status` to `done` (plans written, awaiting approval + execution).
 3. Update `updated:` to today's date.
 
 If the state file doesn't exist, skip this step — it's optional.

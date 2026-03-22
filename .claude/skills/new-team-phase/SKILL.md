@@ -79,14 +79,15 @@ tracks:
     phases:
       <phase-slug>:
         config: <path to kickoff.yaml just written>
-        status: next
+        plan_status: not_started
+        execute_status: not_started
         depends_on: []
         notes: "<phase goal>"
 ```
 
 **If `PROJECT.state.yaml` already exists**, add the new phase to the appropriate track:
-- If it depends on existing phases, set `status: pending` and populate `depends_on`
-- If it has no dependencies and no other phase is `next`, set `status: next`
+- Set `plan_status: not_started` and `execute_status: not_started`
+- Populate `depends_on` if it depends on existing phases
 - Update the `updated:` date
 
 Then print:

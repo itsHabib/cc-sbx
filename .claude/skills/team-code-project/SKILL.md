@@ -229,21 +229,23 @@ tracks:
     phases:
       <phase-1-slug>:
         config: docs/<phase-1-slug>/kickoff.yaml
-        status: next
+        plan_status: not_started
+        execute_status: not_started
         depends_on: []
         notes: "<phase 1 goal>"
       <phase-2-slug>:
         config: docs/<phase-2-slug>/kickoff.yaml
-        status: pending
+        plan_status: not_started
+        execute_status: not_started
         depends_on: [<phase-1-slug>]
         notes: "<phase 2 goal>"
       # ... repeat for all phases
 ```
 
 Rules:
-- The first phase (no dependencies) gets `status: next`
-- All other phases get `status: pending`
+- All phases start with `plan_status: not_started` and `execute_status: not_started`
 - `depends_on` mirrors the dependency chain from the kickoff YAMLs
+- A phase is ready for `/team-kickoff` when all its dependencies have `execute_status: done`
 - Use a single `main` track unless the project has clearly independent work streams
 
 ## Step 5 — Print next steps

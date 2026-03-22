@@ -194,10 +194,10 @@ Do not summarize until every teammate has sent a completion message. Then:
 After all teammates have completed, tests pass, and the phase is done, check if `PROJECT.state.yaml` exists in the project root. If it does:
 
 1. Find the phase entry whose `config` path matches the kickoff YAML you just ran (`$ARGUMENTS`).
-2. Set that phase's `status` to `done`.
+2. Set that phase's `execute_status` to `done`.
 3. Set `completed:` to today's date.
 4. Set `commit:` to the short SHA of the commit (if one was created).
-5. Check if any phases in the same track have `depends_on` that includes this phase. If all their dependencies are now `done`, update their status from `pending` to `next`.
+5. Check if any phases in the same track have `depends_on` that includes this phase. If all their dependencies now have `execute_status: done`, those dependent phases are unblocked — their `plan_status` and `execute_status` should remain `not_started` but they are now ready for `/team-kickoff`.
 6. Update `updated:` to today's date.
 
 If the state file doesn't exist, skip this step — it's optional.
