@@ -473,25 +473,5 @@ All features share the same `Session` — one client, one set of retries, one us
 
 #### Agent Workflow
 
-Built iteratively in a single Claude Code session. Cost tracking and Extract were each designed with `/plan` mode first, then implemented and verified with `go build`, `go test -race`, and `golangci-lint run` — zero lint issues throughout.
-
-Extract's schema generation is hand-rolled reflection (~80 lines) with a `sync.Map` cache per type. No external schema library — supports all Go primitives, slices, nested structs, and pointer/optional fields.
-
-```
-sense/
-  sense.go              # package doc, Assert, Require, Eval, Compare
-  extract.go            # Extract[T] generic function, ExtractBuilder, ExtractResult
-  extract_schema.go     # reflection-based JSON schema generation + cache
-  config.go             # Session, SessionUsage, atomic counters
-  client.go             # Claude API client, caller interface, Usage
-  batch.go              # Batch API client
-  prompt.go             # system prompts and user message builders
-  eval.go               # EvalBuilder, EvalResult
-  compare.go            # CompareBuilder, CompareResult
-  assert.go             # AssertBuilder (t.Error / t.Fatal wrappers)
-  extract_test.go       # 75 unit tests (12 behavior + 63 schema)
-  usage_test.go         # 5 unit tests (accumulation, concurrency, format)
-  unit_test.go          # 30 unit tests (eval, compare, assert, serialization)
-  e2e_test.go           # 23 e2e tests hitting real Claude API
-```
+Built iteratively in a single Claude Code session. Cost tracking and Extract were each designed with `/plan` mode first, then implemented and verified with `go build`, `go test -race`, and `golangci-lint run` — zero lint issues throughout. Extract's schema generation is hand-rolled reflection (~80 lines) with no external schema library.
 
