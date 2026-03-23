@@ -25,3 +25,6 @@
 [submodule "cortex"]
 	path = cortex
 	url = git@github.com:itsHabib/cortex.git
+[submodule "sense"]
+	path = sense
+	url = git@github.com:itsHabib/sense.git
