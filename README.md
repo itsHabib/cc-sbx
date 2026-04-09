@@ -480,11 +480,7 @@ Built iteratively in a single Claude Code session. Cost tracking and Extract wer
 
 ### adt-plus-verbal-password-fix
 
-A live debugging session where Claude Code reverse-engineered ADT's production registration flow to diagnose and fix a deadlock bug. The verbal password page (`plus.adt.com/v5/registration/verbal-password`) was stuck in an infinite loading spinner — no submit button ever appeared.
+Claude Code reverse-engineered ADT's production Vue 3 / Pinia registration app to diagnose and bypass a deadlock bug — the verbal password page was stuck in an infinite spinner because it waited on WebSocket responses from hardware that wasn't connected yet. Fixed by sending an `accountUpdateRequest` directly over the WebSocket to skip the stuck registration step. Tools used: Playwright, Chrome DevTools, bundle decompilation, WebSocket protocol analysis.
 
-The diagnosis chain: Chrome DevTools console logs → Playwright automation with a file-based command interface → Vue 3 / Pinia store inspection (19 stores, 11 stuck promises) → 1.4MB app bundle decompilation → direct WebSocket protocol analysis. Root cause: the page waits on device/system WebSocket responses from a base station that isn't connected yet, and the passcode API requires a `siteId` that doesn't exist until after provisioning.
-
-The fix: sent an `accountUpdateRequest` over WebSocket with `systemSetupStage: 100` (COMPLETE), which the server accepted without requiring a `siteId` — bypassing the deadlocked registration flow entirely.
-
-See [`ADT-PLUS-VERBAL-PASSWORD-FIX.md`](./ADT-PLUS-VERBAL-PASSWORD-FIX.md) for the full step-by-step writeup.
+See [`ADT-PLUS-VERBAL-PASSWORD-FIX.md`](./ADT-PLUS-VERBAL-PASSWORD-FIX.md) for the full writeup.
 
