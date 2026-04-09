@@ -54,6 +54,7 @@ This repo includes [Claude Code skills](https://docs.anthropic.com/en/docs/claud
   - [sense](#sense)
     - [Features](#features)
     - [Agent Workflow](#agent-workflow-8)
+  - [adt-plus-verbal-password-fix](#adt-plus-verbal-password-fix)
 
 ---
 
@@ -474,4 +475,16 @@ All features share the same `Session` — one client, one set of retries, one us
 #### Agent Workflow
 
 Built iteratively in a single Claude Code session. Cost tracking and Extract were each designed with `/plan` mode first, then implemented and verified with `go build`, `go test -race`, and `golangci-lint run` — zero lint issues throughout. Extract's schema generation is hand-rolled reflection (~80 lines) with no external schema library.
+
+---
+
+### adt-plus-verbal-password-fix
+
+A live debugging session where Claude Code reverse-engineered ADT's production registration flow to diagnose and fix a deadlock bug. The verbal password page (`plus.adt.com/v5/registration/verbal-password`) was stuck in an infinite loading spinner — no submit button ever appeared.
+
+The diagnosis chain: Chrome DevTools console logs → Playwright automation with a file-based command interface → Vue 3 / Pinia store inspection (19 stores, 11 stuck promises) → 1.4MB app bundle decompilation → direct WebSocket protocol analysis. Root cause: the page waits on device/system WebSocket responses from a base station that isn't connected yet, and the passcode API requires a `siteId` that doesn't exist until after provisioning.
+
+The fix: sent an `accountUpdateRequest` over WebSocket with `systemSetupStage: 100` (COMPLETE), which the server accepted without requiring a `siteId` — bypassing the deadlocked registration flow entirely.
+
+See [`ADT-PLUS-VERBAL-PASSWORD-FIX.md`](./ADT-PLUS-VERBAL-PASSWORD-FIX.md) for the full step-by-step writeup.
 
